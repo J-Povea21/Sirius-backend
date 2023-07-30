@@ -27,6 +27,12 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('A user connected');
+
+    // Here we're listening the custom event 'opened' from the client
+    socket.on('opened', (data) => {
+         console.log(`The opened state is: ${data} `);
+    });
+
 });
 
 httpServer.listen(3000, () => {
