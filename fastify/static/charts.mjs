@@ -3,20 +3,12 @@
     going to export some functions that will be used in the data-manager
  */
 
-/*
- First we import chartJS
-     NOTE: This is a quick way to test the library. In the real project
-     we need to see if we want to import the whole library
- */
-import Chart from 'chart.js/auto';
-
-
 // CONSTANTS
 const maxPoints = 10;
 
 
 // Select the canvas
-const ctx = document.querySelector('#myChart').getContext('2d');
+const ctx = document.querySelector('#data-chart').getContext('2d');
 
 // Create the data object
 const data = {
