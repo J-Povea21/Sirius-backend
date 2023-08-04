@@ -11,6 +11,10 @@
 import Chart from 'chart.js/auto';
 
 
+// CONSTANTS
+const maxPoints = 10;
+
+
 // Select the canvas
 const ctx = document.querySelector('#myChart').getContext('2d');
 
@@ -57,6 +61,19 @@ const chart = new Chart(ctx, {
 
 // Now we're going to create some fn to update the chart data
 
-function updateChart(chart, data){
+function updateChart(chart, data, label){
+    chart.data.labels.push(label);
 
+    chart.data.datasets.forEach(dataset => {
+        dataset.data.push(data);
+    });
+
+    if(chart.data.labels.length > maxPoints){
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+    }
+
+    chart.update();
 }
+
+export {updateChart, chart};
