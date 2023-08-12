@@ -1,0 +1,25 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+h1, p {
+    text-align: center;
+}
+
+#main-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh; /* Ajusta este valor según el tamaño que desees */
+}
+
+#data-chart {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#checkButton {
+    background-color: aqua;
+}

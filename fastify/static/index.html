@@ -3,19 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>Testing</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <h1>Press the button to start receiving data</h1>
 
     <button id="arduinoBtn">Start</button>
+    <button id="checkButton">Check</button>
 
 
     <h1>Chart</h1>
     <p>In this chart are going to be displayed the data
     we're getting from the arduino</p>
 
-    <canvas id="data-chart" width="400" height="400"></canvas>
+    <div id ="main-container">
+        <canvas id="data-chart" width="400" height="400"></canvas>
+    </div>
 
     <!--- Socket script. We can check if there's a way to have this file locally later --->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>

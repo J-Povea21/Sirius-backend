@@ -53,7 +53,7 @@ const chart = new Chart(ctx, {
 
 // Now we're going to create some fn to update the chart data
 
-function updateChart(chart, data, label){
+function updateChart(data, label){
     chart.data.labels.push(label);
 
     chart.data.datasets.forEach(dataset => {
@@ -68,4 +68,4 @@ function updateChart(chart, data, label){
     chart.update();
 }
 
-export {updateChart, chart};
+export {updateChart};

@@ -3,6 +3,9 @@ import fastifyIO from "fastify-socket.io";
 import fastifyStatic from "@fastify/static"
 import routes from "./routes.mjs";
 import path from "node:path";
+import {port2, parser2} from "./tester.mjs";
+import { Socket } from "socket.io";
+import { SerialPort } from 'serialport';
 
 const app = Fastify({
     logger: true
@@ -34,8 +37,42 @@ app.listen({port: 3000}, (err, address) => {
 
         console.log('A user connected');
 
-        socket.on('opened', (data) => {
-            console.log(`The opened state is: ${data}`);
+        //->Envia dato
+        socket.on('check', (arduinoType) =>{
+            //¿Hay sensores conectados?
+            async function findArduinos(){
+                let serialList = await SerialPort.list().then(data => data)
+                return serialList
+            }
+            if(findArduinos().length==0){
+               console.log("HEY BROU NO HAY UNA VERGAAAA")
+            } else {
+                port2.write("SENSORTYPE\n");
+                parser2.on("data", status => {
+                    if(status == "1"){
+                        console.log("SI EXISTOOO");
+                    }else{
+                        console.log("TAS MAL")
+                    }
+                });
+            }
+
+        });
+
+        socket.on('opened', (state) => {
+            if (state === true) {
+
+                port2.write('I\n');
+                parser2.on('data', data => {
+                    const parsedData = JSON.parse(data);
+                    console.log(parsedData);
+                    socket.emit("arduino", parsedData.ULTRASONIC.time);
+                });
+
+            }else{
+                port2.write('P\n');
+            }
+
         });
 
     });
