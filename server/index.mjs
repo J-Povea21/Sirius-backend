@@ -5,6 +5,7 @@ import routes from "./routes.mjs";
 import {findArduino, checkExperimentCode, getPort, executeOperation, PORT_OPERATIONS} from "./hardware/port-manager.mjs";
 import path from "node:path";
 
+
 const app = Fastify({
     logger: true
 });
@@ -39,12 +40,9 @@ app.listen({port: 3000}, (err, address) => {
             if (found) {
                 checkExperimentCode('2');
                 executeOperation(PORT_OPERATIONS.PAUSE);
-
             } else {
                 console.log('Arduino not found');
             }
 
-
         });
-
 });
