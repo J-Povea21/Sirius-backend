@@ -37,7 +37,7 @@ function executeOperation(operation){
         return operationExecuted;
     }
 
-    if(!operation in PORT_OPERATIONS){
+    if(!(operation in PORT_OPERATIONS)){
         console.log(`Operation \'${operation}\' not recognized`);
     }else{
         port.write(`${PORT_OPERATIONS[operation]}\n`);
@@ -58,7 +58,7 @@ function checkExperimentCode(experiment){
     let isCorrect = false;
 
     try{
-        openPort();
+        !port && openPort(); // If the port is not open, we open it
         port.write(experiment);
         dataParser.on('data', status => isCorrect = (status == '1') );
     }catch (e) {
