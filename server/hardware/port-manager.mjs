@@ -4,6 +4,7 @@
 
 import {SerialPort} from "serialport";
 import {DelimiterParser} from "@serialport/parser-delimiter";
+import {resolve} from "chart.js/helpers";
 
 // PORT AND PARSER
 let portPath = '';
@@ -28,54 +29,56 @@ async function findArduino(){
    return (portPath !== '');
 }
 
-function executeOperation(operation){
-
-    let operationExecuted = false;
-
-    if(port == null || !port.isOpen){
+async function executeOperation(operation) {
+    if (port === null || !port.isOpen) {
         console.log(`[Error executing operation]: Port is not open`);
-        return operationExecuted;
+        return false;
     }
 
-    if(!(operation in PORT_OPERATIONS)){
-        console.log(`Operation \'${operation}\' not recognized`);
-    }else{
-        port.write(`${PORT_OPERATIONS[operation]}\n`);
-        operationExecuted = true;
+    if (!(operation in PORT_OPERATIONS)) {
+        console.log(`Operation '${operation}' not recognized`);
+    } else {
+        return new Promise((resolve, reject) => {
+            port.write(`${PORT_OPERATIONS[operation]}\n`);
 
-        // In case an error happens, we set operationExecuted to false
-        port.on('error', err => {
-               console.log(`Error executing operation: ${err}`);
-               operationExecuted = false;
+            port.once('error', err => {
+                console.log(`Error executing operation: ${err}`);
+                resolve(false); // Resolve with false when an error occurs
+            });
+
+            resolve(true); // Resolve with true when the operation is executed
         });
     }
-
-    return operationExecuted;
-
 }
 
-function checkExperimentCode(experiment){
-    let isCorrect = false;
+async function checkExperimentCode(experiment){
 
-    try{
-        !port && openPort(); // If the port is not open, we open it
+    if(!port)
+        await openPort();
+
+    return new Promise((resolve, reject) => {
         port.write(experiment);
-        dataParser.on('data', status => isCorrect = (status == '1') );
-    }catch (e) {
-        console.log(`An error happened while checking code: ${e}`);
-    }
-    return isCorrect;
+
+        dataParser.once('data', status => resolve(status == '1') ); // 1 means the experiment code is correct
+
+        port.on('error', err => reject(err.message));
+
+    });
+
 }
 
 function openPort(){
-    try{
+
+    if(port) return true // If the port is already opened, we just return true
+
+    return new Promise((resolve, reject) => {
         port = new SerialPort({path: portPath, baudRate: 9600});
         port.pipe(dataParser);
 
-        port.on('error', err => console.log(`[Error opening port]: ${err.message}`));
-    }catch(e){
-        console.log(`Error creating port instance: ${e}`);
-    }
+        port.once('open', () => resolve(true));
+
+        port.on('error', err => reject(err.message));
+    });
 }
 
 function getPort() {
@@ -83,5 +86,11 @@ function getPort() {
 }
 
 
-
-export {findArduino, checkExperimentCode, getPort, executeOperation, PORT_OPERATIONS};
+export {
+    openPort,
+    findArduino,
+    checkExperimentCode,
+    getPort,
+    executeOperation,
+    PORT_OPERATIONS
+};
