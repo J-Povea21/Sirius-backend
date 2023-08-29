@@ -4,7 +4,6 @@
 
 import {SerialPort} from "serialport";
 import {DelimiterParser} from "@serialport/parser-delimiter";
-import {resolve} from "chart.js/helpers";
 
 // PORT AND PARSER
 let portPath = '';
@@ -16,52 +15,57 @@ const PORT_OPERATIONS = {PAUSE: 'P', INIT: 'I'}
 
 // FUNCTIONS
 
-async function findArduino(){
+function findArduino() {
+    return new Promise((resolve, reject) => {
+
+        SerialPort.list()
+            .then(ports => {
+
+            const arduino = ports.find(port => port.manufacturer.includes('Arduino'));
+
+            if(arduino){
+                portPath = arduino.path;
+                openPort();
+                resolve(true);
+            }else{
+                resolve(false);
+            }
+
+            })
+            .catch(err => reject(err));
+
+    });
+}
+
+async function executeOperation(operation, callback) {
+
+    if(operation !== 'P' && operation !== 'I') return callback(false, 'Operation not recognized');
 
     try{
-        const ports = await SerialPort.list();
-        portPath = ports[0].path || ''; // If the list is empty and there's no path at ports[0], we just assign an empty string
-    }catch (e) {
-        console.log(`An error happened: ${e}`);
+        port.write(`${operation}\n`);
+        callback(true);
+    }catch (e){
+        callback(false, e);
     }
 
-   // If we have a portPath, we have an Arduino connected
-   return (portPath !== '');
 }
 
-async function executeOperation(operation) {
-    if (port === null || !port.isOpen) {
-        console.log(`[Error executing operation]: Port is not open`);
-        return false;
-    }
-
-    if (!(operation in PORT_OPERATIONS)) {
-        console.log(`Operation '${operation}' not recognized`);
-    } else {
-        return new Promise((resolve, reject) => {
-            port.write(`${PORT_OPERATIONS[operation]}\n`);
-
-            port.once('error', err => {
-                console.log(`Error executing operation: ${err}`);
-                resolve(false); // Resolve with false when an error occurs
-            });
-
-            resolve(true); // Resolve with true when the operation is executed
-        });
-    }
-}
-
-async function checkExperimentCode(experiment){
-
-    if(!port)
-        await openPort();
+function checkExperimentCode(experiment){
 
     return new Promise((resolve, reject) => {
-        port.write(experiment);
 
-        dataParser.once('data', status => resolve(status == '1') ); // 1 means the experiment code is correct
+        try {
+            port.write(`${experiment}\n`);
 
-        port.on('error', err => reject(err.message));
+            dataParser.once('data', async (status)=> {
+                const isCorrect = status == '1'; // 1 means the experiment code is correct
+                resolve(isCorrect);
+            });
+
+            dataParser.once('error', err => reject(err));
+        }catch (e){
+            reject(e);
+        }
 
     });
 
@@ -69,28 +73,32 @@ async function checkExperimentCode(experiment){
 
 function openPort(){
 
-    if(port) return true // If the port is already opened, we just return true
+    if(port) return; // If the port is already opened, we just return
 
-    return new Promise((resolve, reject) => {
-        port = new SerialPort({path: portPath, baudRate: 9600});
-        port.pipe(dataParser);
+     port = new SerialPort({path: portPath, baudRate: 9600});
+     port.pipe(dataParser);
 
-        port.once('open', () => resolve(true));
+     port.once('error', err => {
+         console.log(`Error opening port: ${err}`);
+         port = null;
+     });
 
-        port.on('error', err => reject(err.message));
-    });
 }
 
 function getPort() {
     return port;
 }
 
+function getParser() {
+    return dataParser;
+}
+
 
 export {
-    openPort,
     findArduino,
     checkExperimentCode,
     getPort,
+    getParser,
     executeOperation,
     PORT_OPERATIONS
 };
