@@ -2,8 +2,9 @@ import Fastify from "fastify";
 import fastifyIO from "fastify-socket.io";
 import fastifyStatic from "@fastify/static"
 import routes from "./routes.mjs";
-import * as ports from "./hardware/port-manager.mjs";
+import * as PortManager from "./hardware/port-manager.mjs";
 import path from "node:path";
+
 
 
 
@@ -42,22 +43,16 @@ app.listen({port: 3000}, (err, address) => {
 
 // MAIN function
 async function main() {
+    const arduinoConnected = await PortManager.findArduino();
 
-    // We check if there's an Arduino connected
-    const arduinoConnected = await ports.findArduino();
+    if (arduinoConnected) {
+        app.log.info('Arduino connected');
+        const portOpened = await PortManager.openPort();
+        const correctCode =  await PortManager.checkExperimentCode('U');
+        PortManager.executeOperation('I');
 
-    if (!arduinoConnected) {
-        console.log('No Arduino found');
-        process.exit(1);
+    }else{
+        app.log.error('Arduino not connected');
     }
-
-    const correctCode =   await ports.checkExperimentCode('U');
-
-    if (correctCode)
-        console.log('Correct experiment code');
-    else
-        console.log('Incorrect experiment code');
-
-
 
 }
