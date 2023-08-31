@@ -17,57 +17,81 @@ const PORT_OPERATIONS = {PAUSE: 'P', INIT: 'I'}
 // FUNCTIONS
 
 async function findArduino() {
-   const portList = await SerialPort.list();
 
-   if(portList.length === 0)
-       return false;
-   else{
-       // We search if there's an Arduino port and save the path
-       portPath = portList.find(port => port.manufacturer.includes('Arduino')).path;
-       return portPath !== undefined;
-   }
+    try {
+        const portList = await SerialPort.list();
+
+        if (portList.length === 0) return {response: false, message: 'No devices found. Please check the connection'};
+
+        // We search if there's an Arduino port and save the path
+        portPath = portList.find(port => port.manufacturer.includes('Arduino')).path;
+
+        if (!portPath) return {response: false, message: 'Arduino not found. Please check the connection'};
+
+        // If there's a port, we open it and return the status
+        return {response: await openPort(), message: 'Arduino detected'};
+
+    }catch (e) {
+        return {response: false, message: `Error finding arduino: ${e.message}`};
+    }
+
 
 }
 
 function executeOperation(operation) {
 
-    if(operation !== 'P' && operation !== 'I') return false;
+    if(operation !== 'P' && operation !== 'I') return {response: false, message: 'Invalid operation'};
 
     try{
-        port.write(`${operation}\n`);
-        dataParser.on('data', (data) => {
-            data = JSON.parse(data);
-            console.log(`Time: ${data.ULTRASONIC.time}`);
-            console.log(`Distance: ${data.ULTRASONIC.distance}`);
+        port.write(`${operation}\n`, err => {
+            if (err) return {response: false, message: `Communication error: ${err.message}`};
         });
-
+        return {response: true, message: 'Operation executed'};
     }catch (e){
-        return false;
+        return {response: false, message: `Error executing operation: ${e.message}`};
     }
 
 }
 
 async function checkExperimentCode(experiment){
 
-    port.write(`${experiment}\n`);
+    if (!port) return {response: false, message: 'No arduino detected.The experiment cant be checked'};
 
-    const status = await waitForResponse('data');
+    port.write(`${experiment}\n`, err => {
+        if (err) return {response: false, message: `Error checking experiment: ${err.message}`};
+    });
 
-    return status == '1';
+    const response = await waitResponse() == '1'// 1 means the code matches the experiment
+    const message = (response)? 'OK' : 'The code doesnt match the experiment';
+
+    return {response, message};
+}
+
+function emitData(socket, event, data){
+    dataParser.on('data', data => console.log(data));
 }
 
 function openPort(){
 
     return new Promise((resolve, reject) => {
+
         port = new SerialPort({path: portPath, baudRate: 9600});
         dataParser = port.pipe(new DelimiterParser({delimiter: '\r\n', encoding: 'utf8'}));
 
         dataParser.once('data', () => resolve(true));
 
-        port.on('error', (err) => reject(err) );
+        port.once('error', (err) => reject(err) );
 
     });
 
+}
+
+function waitResponse(){
+    return new Promise((resolve, reject) => {
+        dataParser.once('data', data => resolve(data));
+
+        port.once('error', err => reject(err));
+    });
 }
 
 function getPort() {
@@ -78,24 +102,12 @@ function getParser() {
     return dataParser;
 }
 
-function waitForResponse(event){
-    return new Promise((resolve, reject) => {
-    dataParser.once(event, (data) => {
-      resolve(data);
-    });
-
-    dataParser.once('error', (error) => {
-      reject(error);
-    });
-  });
-}
-
 export {
     findArduino,
     checkExperimentCode,
+    emitData,
     getPort,
     getParser,
-    openPort,
     executeOperation,
     PORT_OPERATIONS
 };

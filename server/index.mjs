@@ -45,14 +45,16 @@ app.listen({port: 3000}, (err, address) => {
 async function main() {
     const arduinoConnected = await PortManager.findArduino();
 
-    if (arduinoConnected) {
-        app.log.info('Arduino connected');
-        const portOpened = await PortManager.openPort();
-        const correctCode =  await PortManager.checkExperimentCode('U');
-        PortManager.executeOperation('I');
+    if (arduinoConnected.response) {
+
+        const response = await PortManager.checkExperimentCode('ULTRASONIC');
+        app.log.info(response.message);
+
+
+
 
     }else{
-        app.log.error('Arduino not connected');
+        app.log.error(arduinoConnected.message);
     }
 
 }
