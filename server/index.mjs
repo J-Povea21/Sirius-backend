@@ -1,9 +1,10 @@
 import Fastify from "fastify";
-import fastifyIO from "fastify-socket.io";
+import FastifyIO from "fastify-socket.io";
 import fastifyStatic from "@fastify/static"
 import routes from "./routes.mjs";
 import * as PortManager from "./hardware/port-manager.mjs";
 import path from "node:path";
+import {emitData} from "./hardware/port-manager.mjs";
 
 
 
@@ -12,20 +13,18 @@ const app = Fastify({
     logger: true
 });
 
+// Server static files' directory:
+app.register(fastifyStatic, {
+    root: path.resolve('server', 'static'),
+});
 
-app.register(fastifyIO);
+// Server socket.io. It's important to note that the path must be the same as the one in the client side in the script src
+app.register(FastifyIO, {
+    serveClient: true,
+    path: '/socket.io/',
+});
 
-/*
-    Serve static files:
-
-    app.register(fastifyStatic, {
-    root: path.resolve('fastify', 'static'),
-    });
-
- */
-
-
-// Server routes. It's more organized to keep them in a separate file
+// Server routes
 app.register(routes);
 
 
@@ -36,25 +35,39 @@ app.listen({port: 3000}, (err, address) => {
         app.log.error(`Error opening server: ${err}`);
         process.exit(1);
     }
-
     main();
 
 });
 
 // MAIN function
 async function main() {
-    const arduinoConnected = await PortManager.findArduino();
 
-    if (arduinoConnected.response) {
+    app.io.on('connection', socket => {
 
-        const response = await PortManager.checkExperimentCode('ULTRASONIC');
-        app.log.info(response.message);
+        socket.on('findArduino', async () => {
+
+            const response = await PortManager.findArduino();
+
+            socket.emit('findArduino', response);
+
+        });
+
+        socket.on('checkExperiment', async experiment => {
+
+                const response = await PortManager.checkExperimentCode(experiment);
+
+                socket.emit('checkExperiment', response);
+        });
+
+        socket.on('startExperiment', async experimentRunning => {
+            const operation = (experimentRunning) ? PortManager.PORT_OPERATIONS.INIT : PortManager.PORT_OPERATIONS.PAUSE;
+            const response = await PortManager.executeOperation(operation);
+
+            operation === 'I' && emitData(socket, 'data');
+
+        });
 
 
-
-
-    }else{
-        app.log.error(arduinoConnected.message);
-    }
+    });
 
 }

@@ -18,6 +18,8 @@ const PORT_OPERATIONS = {PAUSE: 'P', INIT: 'I'}
 
 async function findArduino() {
 
+    if (port) return {response: true, message: 'Arduino detected'};
+
     try {
         const portList = await SerialPort.list();
 
@@ -67,8 +69,11 @@ async function checkExperimentCode(experiment){
     return {response, message};
 }
 
-function emitData(socket, event, data){
-    dataParser.on('data', data => console.log(data));
+function emitData(socket, event){
+    dataParser.on('data', data => {
+       const parsedData  = JSON.parse(data);
+        socket.emit(event, parsedData);
+    });
 }
 
 function openPort(){
