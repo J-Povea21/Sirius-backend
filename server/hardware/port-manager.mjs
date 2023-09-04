@@ -69,12 +69,6 @@ async function checkExperimentCode(experiment){
     return {response, message};
 }
 
-function emitData(socket, event){
-    dataParser.on('data', data => {
-       const parsedData  = JSON.parse(data);
-        socket.emit(event, parsedData);
-    });
-}
 
 function openPort(){
 
@@ -110,7 +104,6 @@ function getParser() {
 export {
     findArduino,
     checkExperimentCode,
-    emitData,
     getPort,
     getParser,
     executeOperation,

@@ -17,7 +17,7 @@ checkExperiment.onclick = () => {
     socket.emit('checkExperiment', experiment);
 };
 
-startExperiment.onclick = () => socket.emit('startExperiment', changeState());
+startExperiment.onclick = () => socket.emit('startExperiment', changeState(), 'MRUA');
 
 // SOCKET ON EVENTS
 socket.on('findArduino', res => {
@@ -39,11 +39,11 @@ socket.on('checkExperiment', res => {
 
 });
 
-socket.on('startExperiment', res => {
+socket.on('MRUA', res => {
     console.log(res);
 });
 
-socket.on('data', data => {
+socket.on('operationResponse', data => {
     console.log(data);
 });
 
