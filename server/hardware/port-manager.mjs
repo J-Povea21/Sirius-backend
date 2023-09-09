@@ -12,7 +12,7 @@ let port = null;
 let dataParser = null;
 
 // PORT OPERATIONS
-const PORT_OPERATIONS = {PAUSE: 'P', INIT: 'I'}
+const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESCAPE: 'ESC'};
 
 // FUNCTIONS
 
@@ -42,7 +42,7 @@ async function findArduino() {
 
 function executeOperation(operation) {
 
-    if(operation !== 'P' && operation !== 'I') return {response: false, message: 'Invalid operation'};
+    if( !(operation in PORT_OPERATIONS) ) return {response: false, message: 'Invalid operation'};
 
     try{
         port.write(`${operation}\n`, err => {
@@ -63,8 +63,8 @@ async function checkExperimentCode(experiment){
         if (err) return {response: false, message: `Error checking experiment: ${err.message}`};
     });
 
-    const response = await waitResponse() == '1'// 1 means the code matches the experiment
-    const message = (response)? 'OK' : 'The code doesnt match the experiment';
+    const response = await waitResponse() == experiment // 1 means the code matches the experiment
+    const message = (response)? 'OK' : 'The code doesn\'t match the experiment';
 
     return {response, message};
 }
@@ -93,10 +93,6 @@ function waitResponse(){
     });
 }
 
-function getPort() {
-    return port;
-}
-
 function getParser() {
     return dataParser;
 }
@@ -104,7 +100,6 @@ function getParser() {
 export {
     findArduino,
     checkExperimentCode,
-    getPort,
     getParser,
     executeOperation,
     PORT_OPERATIONS

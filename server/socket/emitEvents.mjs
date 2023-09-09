@@ -3,7 +3,7 @@
     the port-manager.mjs module to communicate with the Arduino
  */
 
-import * as PortManager from "../hardware/port-manager.mjs";
+import * as Port from "../hardware/port-manager.mjs";
 
 let webSocket = null;
 
@@ -12,22 +12,30 @@ function setSocket(socket){
 }
 
 async function findArduino(){
-    const res = await PortManager.findArduino();
+    const res = await Port.findArduino();
     emitResponse('findArduino', res);
 }
 
 async function checkExperimentCode(experiment){
-    const res = await PortManager.checkExperimentCode(experiment);
+    const res = await Port.checkExperimentCode(experiment);
     emitResponse('checkExperiment', res);
 }
 
 async function startExperiment(runExperiment, experiment){
-    const operationToExecute = (runExperiment) ? PortManager.PORT_OPERATIONS.INIT : PortManager.PORT_OPERATIONS.PAUSE;
-    const res = await PortManager.executeOperation(operationToExecute);
+    const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
+    const res = await Port.executeOperation(operationToExecute);
 
     emitResponse('operationResponse', res);
     if (res.response) emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
+}
 
+/*
+    This function basically sends the ESC command to the Arduino. This command is used to stop the current experiment and
+    put the arduino in a state where it can listen if the user wants to start another experience
+ */
+async function changeExperiment(){
+    const response = await Port.executeOperation(PORT_OPERATIONS.ESCAPE);
+    emitResponse('operationResponse', response);
 }
 
 
@@ -36,7 +44,7 @@ function emitResponse(event, response){
 }
 
 function emitExperimentData(exp){
-    const dataParser = PortManager.getParser();
+    const dataParser = Port.getParser();
 
     dataParser.on('data', sensorData => {
        const parsedData = JSON.parse(sensorData);
@@ -49,5 +57,6 @@ export {
     setSocket,
     findArduino,
     checkExperimentCode,
-    startExperiment
+    startExperiment,
+    changeExperiment
 }

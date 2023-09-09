@@ -23,8 +23,10 @@ startExperiment.onclick = () => socket.emit('startExperiment', changeState(), 'M
 socket.on('findArduino', res => {
     const arduinoFound = res.response;
 
-    if (arduinoFound)
+    if (arduinoFound){
+        socket.emit('ESC', true);
         document.querySelectorAll('.checks').forEach(elem => elem.style.display = 'block');
+    }
 
     alert(res.message);
 });
