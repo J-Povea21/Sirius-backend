@@ -12,7 +12,7 @@ let port = null;
 let dataParser = null;
 
 // PORT OPERATIONS
-const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESCAPE: 'ESC'};
+const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
 
 // FUNCTIONS
 

@@ -1,7 +1,7 @@
 const socket = io();
 
 //FIRST COMMAND
-socket.emit('ESC');
+socket.emit('changeExperiment');
 
 const checkExperiment = document.querySelector('#check-experiment');
 const startExperiment = document.querySelector('#start-experiment');

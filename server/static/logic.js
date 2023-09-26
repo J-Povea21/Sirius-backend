@@ -4,6 +4,7 @@ const socket = io();
 const findArduino = document.querySelector('#find-arduino');
 const checkExperiment = document.querySelector('#check-experiment');
 const startExperiment = document.querySelector('#start-experiment');
+const escape = document.querySelector('#escape');
 
 let experimentRunning = false;
 
@@ -17,6 +18,8 @@ checkExperiment.onclick = () => {
     socket.emit('checkExperiment', experiment);
 };
 
+escape.onclick = () => socket.emit('changeExperiment');
+
 startExperiment.onclick = () => socket.emit('startExperiment', changeState(), 'MRUA');
 
 // SOCKET ON EVENTS
@@ -24,7 +27,6 @@ socket.on('findArduino', res => {
     const arduinoFound = res.response;
 
     if (arduinoFound){
-        socket.emit('ESC', true);
         document.querySelectorAll('.checks').forEach(elem => elem.style.display = 'block');
     }
 

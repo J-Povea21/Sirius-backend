@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import FastifyIO from "fastify-socket.io";
 import fastifyStatic from "@fastify/static"
 import routes from "./routes.mjs";
@@ -17,10 +18,20 @@ app.register(fastifyStatic, {
     root: path.resolve('server', 'static'),
 });
 
+// Server cors
+app.register(cors, {
+   origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+});
+
 // Server socket.io. It's important to note that the path must be the same as the one in the client side in the script src
 app.register(FastifyIO, {
     serveClient: true,
     path: '/socket.io/',
+    cors: {
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    }
 });
 
 // Server routes
