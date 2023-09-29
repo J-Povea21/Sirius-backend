@@ -20,13 +20,19 @@ async function findArduino() {
 
     if (port) return {response: true, message: 'Arduino detected'};
 
+
     try {
         const portList = await SerialPort.list();
 
         if (portList.length === 0) return {response: false, message: 'No devices found. Please check the connection'};
 
         // We search if there's an Arduino port and save the path
-        portPath = portList.find(port => port.manufacturer.includes('Arduino')).path;
+        portPath = portList.find(port => {
+            if (!port.manufacturer) return false;
+            else return port.manufacturer.includes('Arduino');
+        });
+
+        portPath = (portPath) ? portPath.path : '';
 
         if (!portPath) return {response: false, message: 'Arduino not found. Please check the connection'};
 

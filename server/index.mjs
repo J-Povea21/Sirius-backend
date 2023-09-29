@@ -46,7 +46,9 @@ app.listen({port: 3000}, (err, address) => {
         process.exit(1);
     }
 
-    app.io.once('connection', socket => setConnection(socket, app));
+    app.io.once('connection', socket => {
+        setConnection(socket, app);
+    });
 
 
 });

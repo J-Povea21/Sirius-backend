@@ -34,7 +34,10 @@ async function startExperiment(runExperiment, experiment){
     put the arduino in a state where it can listen if the user wants to start another experience
  */
 async function changeExperiment(){
-    const response = await Port.executeOperation(PORT_OPERATIONS.ESCAPE);
+    // We remove all the listeners from the parser
+    getParser().removeAllListeners();
+
+    const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
     emitResponse('operationResponse', response);
 }
 
@@ -52,6 +55,7 @@ function emitExperimentData(exp){
     });
 
 }
+
 
 export {
     setSocket,
