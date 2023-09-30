@@ -1,21 +1,13 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import FastifyIO from "fastify-socket.io";
-import fastifyStatic from "@fastify/static"
-import routes from "./routes.mjs";
 import {setConnection} from "./socket/onEvents.mjs";
-import path from "node:path";
 
 
 
 
 const app = Fastify({
     logger: true
-});
-
-// Server static files' directory:
-app.register(fastifyStatic, {
-    root: path.resolve('server', 'static'),
 });
 
 // Server cors
@@ -34,10 +26,6 @@ app.register(FastifyIO, {
     }
 });
 
-// Server routes
-app.register(routes);
-
-
 // Here we start the server
 
 app.listen({port: 3000}, (err, address) => {
@@ -46,9 +34,6 @@ app.listen({port: 3000}, (err, address) => {
         process.exit(1);
     }
 
-    app.io.once('connection', socket => {
-        setConnection(socket, app);
-    });
-
+    app.io.once('connection', socket => setConnection(socket, app));
 
 });

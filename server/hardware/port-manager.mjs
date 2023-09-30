@@ -69,7 +69,7 @@ async function checkExperimentCode(experiment){
         if (err) return {response: false, message: `Error checking experiment: ${err.message}`};
     });
 
-    const response = await waitResponse() == experiment // 1 means the code matches the experiment
+    const response = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
     const message = (response)? 'OK' : 'The code doesn\'t match the experiment';
 
     return {response, message};
