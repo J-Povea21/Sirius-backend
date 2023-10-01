@@ -10,7 +10,7 @@ export function setConnection(socket, app){
     socket.on('findArduino', () => EmitEvents.findArduino());
     socket.on('checkExperiment', experiment => EmitEvents.checkExperimentCode(experiment));
     socket.on('startExperiment', (runExperiment, experiment) => EmitEvents.startExperiment(runExperiment, experiment));
-
+    socket.on('changeExperiment', () => EmitEvents.changeExperiment());
 }
 
 

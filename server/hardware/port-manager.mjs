@@ -12,7 +12,8 @@ let port = null;
 let dataParser = null;
 
 // PORT OPERATIONS
-const PORT_OPERATIONS = {PAUSE: 'P', INIT: 'I'}
+
+const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
 
 // FUNCTIONS
 
@@ -26,7 +27,12 @@ async function findArduino() {
         if (portList.length === 0) return {response: false, message: 'No devices found. Please check the connection'};
 
         // We search if there's an Arduino port and save the path
-        portPath = portList.find(port => port.manufacturer.includes('Arduino')).path;
+        portPath = portList.find(port => {
+            if (!port.manufacturer) return false;
+            else return port.manufacturer.includes('Arduino');
+        });
+
+        portPath = (portPath) ? portPath.path : '';
 
         if (!portPath) return {response: false, message: 'Arduino not found. Please check the connection'};
 
@@ -42,7 +48,7 @@ async function findArduino() {
 
 function executeOperation(operation) {
 
-    if(operation !== 'P' && operation !== 'I') return {response: false, message: 'Invalid operation'};
+    if( !(operation in PORT_OPERATIONS) ) return {response: false, message: 'Invalid operation'};
 
     try{
         port.write(`${operation}\n`, err => {
@@ -63,8 +69,8 @@ async function checkExperimentCode(experiment){
         if (err) return {response: false, message: `Error checking experiment: ${err.message}`};
     });
 
-    const response = await waitResponse() == '1'// 1 means the code matches the experiment
-    const message = (response)? 'OK' : 'The code doesnt match the experiment';
+    const response = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
+    const message = (response)? 'OK' : 'The code doesn\'t match the experiment';
 
     return {response, message};
 }
@@ -93,10 +99,6 @@ function waitResponse(){
     });
 }
 
-function getPort() {
-    return port;
-}
-
 function getParser() {
     return dataParser;
 }
@@ -104,7 +106,6 @@ function getParser() {
 export {
     findArduino,
     checkExperimentCode,
-    getPort,
     getParser,
     executeOperation,
     PORT_OPERATIONS
