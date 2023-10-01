@@ -20,7 +20,7 @@ Sirius is an app that works with hardware. In order to receive data from this ha
 ### The server-hardware communication
 Is important to understand what's the expected process in order to establish a communication between Sirius and your hardware device. Take a look at this brief diagram:
 
-![[Brief-Diagram.png]]
+![Brief-Diagram.png](Brief-Diagram.png)
 
 ### Port manager object
 The first thing you need to know is that all the functions in the diagram are methods of a PortManager object. These methods are exported at the end of the file. From now on when we use PortManager.method() we're using this object
