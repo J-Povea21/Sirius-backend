@@ -4,7 +4,7 @@ Hi, everyone! Welcome to the Sirius's back-end documentation. Here you will find
 
 - [Technologies](#technologies)
 - [Installation](#installation)
-- [Server API](#server)
+- [Server](#server)
 - [Web-socket API](#api)
 
 
