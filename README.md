@@ -159,12 +159,12 @@ This event triggers the [findArduino()](#findArduino) method. With this, you can
 ```
 socket.emit('checkExperiment', 'FreeFall');
 ```
-Triggers the [checkExperimentCode(exp)](#checkExperimentCode(experiment)) method. Please note that you **need to send** the experiment you want to check
+Triggers the [checkExperimentCode(exp)](#checkexperimentcodeexperiment) method. Please note that you **need to send** the experiment you want to check
 #### startExperiment
 ```
 socket.emit('startExperiment', runExperiment, 'responseEventName')
 ```
-Triggers the [executeOperation(operation)](#executeOperation(operationToExecute)) method. This event expect two arguments: 
+Triggers the [executeOperation(operation)](#executeoperationoperationtoexecute) method. This event expect two arguments: 
 - **runExperiment**: do you want to start receiving data? You need to pass *true*. Oh, now you want to pause the data transmission? Pass a *false* value
 - **responseEventName**: what's the name of the event you want to listen when data starts to be sent? It can be 'data' or the same name of the experiment you checked
 
@@ -196,5 +196,5 @@ socket.on('expData', data => {
 ```
 socket.emit('changeExperiment');
 ```
-Triggers the [executeOperation(exp)](#executeOperation(operationToExecute)) method with the [ESC](#esc) operation. If you're receiving data from the **FreeFall** experiment, you can use this method to check the code for another experiment and start receiving the corresponding data.
+Triggers the [executeOperation(exp)](#executeoperationoperationtoexecute) method with the [ESC](#esc) operation. If you're receiving data from the **FreeFall** experiment, you can use this method to check the code for another experiment and start receiving the corresponding data.
 
