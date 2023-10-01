@@ -101,3 +101,81 @@ At some point you would like to stop receiving data, right? But it would be a he
 
 ### ESC
 It's the contraction of *ESCAPE*. This is an special operation because it "changes" the actual state of the hardware device to a listening state. You can add as much operations as you like to this dictionary. Just take in account that the key of the operation **must be** the same as the value. For example: **{STOP: 'STOP'}**
+
+## API
+Yeah, yeah, the server has a beautiful structure, but we're sure you don't want to deal directly with all those methods. That's why we provide a **web-socket based API** to make your application work like magic. Before start, take a look at what's the expected process to establish a proper communication between your app and the hardware [here](#server)
+
+### Setup
+Our web-socket API uses [SocketIO](). To establish the connection with the server, make sure to install the socket.io-client in your front-end app
+```
+npm i socket.io-client
+```
+
+Now, connect to the back-end server:
+```
+//somewhere.mjs
+
+import {io} from "socket.io-client"
+
+const socket = io('http://localhost:3000');
+```
+
+And you're ready to go!
+### Events
+A web-socket emits and listens to events. In your application, you just need to emit certain events and listen to the responses. To make easier the process, when an event is emitted you just need to listen to the same event. Here's an example:
+```
+socket.emit('someEvent');
+
+socket.on('someEvent', response =>{
+	//do stuff
+});
+```
+
+#### findArduino
+```
+socket.emit('findArduino');
+```
+This event triggers the [findArduino()](#findArduino) method. With this, you can check if there are hardware devices connected to your computer and open the port
+#### checkExperiment
+```
+socket.emit('checkExperiment', 'FreeFall');
+```
+Triggers the [checkExperimentCode(exp)](#checkExperimentCode(experiment)) method. Please note that you **need to send** the experiment you want to check
+#### startExperiment
+```
+socket.emit('startExperiment', runExperiment, 'responseEventName')
+```
+Triggers the [executeOperation(operation)](#executeOperation(operationToExecute)) method. This event expect two arguments: 
+- **runExperiment**: do you want to start receiving data? You need to pass *true*. Oh, now you want to pause the data transmission? Pass a *false* value
+- **responseEventName**: what's the name of the event you want to listen when data starts to be sent? It can be 'data' or the same name of the experiment you checked
+
+Here's an example:
+```
+// somewhere.mjs
+
+//1. Check if the code of the experiment exists
+socket.emit('checkExperiment', 'FreeFall');
+
+//2. Listen to the response
+socket.on('checkExperiment', res => {
+
+	//3. Starts the data transmission
+	if(res.response === true){
+		socket.emit('startExperiment', true, 'expData');
+	}
+	
+});
+
+//4. Listen to the data
+socket.on('expData', data => {
+	console.log(data);
+});
+
+```
+
+#### changeExperiment
+```
+socket.emit('changeExperiment');
+```
+Triggers the [executeOperation(exp)](#executeOperation(operationToExecute)) method with the [ESC](#esc) operation. If you're receiving data from the **FreeFall** experiment, you can use this method to check the code for another experiment and start receiving the corresponding data.
+
