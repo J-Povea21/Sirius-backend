@@ -1,4 +1,3 @@
-
 # Introduction
 Hi, everyone! Welcome to the Sirius's back-end documentation. Here you will find all the information you need to understand how the back-end of the project works. This documentation is divided in the following sections: 
 
@@ -21,7 +20,7 @@ Sirius is an app that works with hardware. In order to receive data from this ha
 ### The server-hardware communication
 Is important to understand what's the expected process in order to establish a communication between Sirius and your hardware device. Take a look at this brief diagram:
 
-![Brief-Diagram.png](Brief-Diagram.png)
+![[Brief-Diagram.png]]
 
 ### Port manager object
 The first thing you need to know is that all the functions in the diagram are methods of a PortManager object. These methods are exported at the end of the file. From now on when we use PortManager.method() we're using this object
@@ -55,11 +54,16 @@ The **response** value depends if the Arduino is found or not. In case the Ardui
 ```
 PortManager.checkExperimentCode('Experiment Name'): JSON
 ```
-Most of the methods return a JSON with the **response** and **message** keys. In this case, the value of **response** depends if the code in the Arduino matches with the given experiment. The logic behind this is that every time we want to start an experiment, the Arduino needs to verify that the given experiment exists in his code. In case it exists, it should **return the name of the experiment**. So if you want to check if the experiment *'FreeFall'* is in the Arduino, the Arduino should respond with *'FreeFall'*. This way we ensure that everything is going to work as expected.
+We need some way to ensure that the given experiment is present in the Arduino code so the data it starts to send corresponds to this experience. That's where this method comes to the picture.
+
+Just like his brothers, the method returns a JSON with the **response** and **message** keys. However, there's an extra logic behind assign *True* or *False* to **response**. For example, let's say that you want to check if the code of the experiment **'FreeFall'** exists in the Arduino. In case it exists, the Arduino should **return the name of the experiment**: **'FreeFall'**. If this happens, **response** will have the value of *True* . This behavior simplifies the architecture and makes more clear what's happening in both sides.
+
+	NOTE:
+	Once you check the code of a certain experiment and the response from the hardware is positive, the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the data from that experiment.
 
 If you don't know how to make your Arduino behave this way, take a look of our [documentation](#).
 
-### executeOperation()
+### executeOperation(*operationToExecute*)
 ```
 PortManager.executeOperation(PORT_OPERATIONS.INIT): JSON
 ```
@@ -73,11 +77,13 @@ What makes the **response** value *true* or *false* is if there is a problem whi
 ```
 PortManager.openPort(): Promise
 ```
-**openPort()** opens the port where the Arduino is located and pipes a **DelimiterParser** to the port. It returns a promise. This promise, when solved, can return two values:
+Opens the port where the Arduino is located and pipes a **DelimiterParser** to the port. It returns a promise. 
 
-- *True*: the **SerialPort** instance is created successfully and the Arduino sent a message indicating that is completely loaded
-- *err*: a problem happened opening the port
+The promise, when solved, can return two values: *True* if the **SerialPort** instance is created successfully and the Arduino sent a message indicating that is completely loaded. *err* if a problem happened opening the port.
 
+
+	WARNING:
+	As we mentioned before, your hardware device has to print a message to the port once is loaded. Sirius can't determinate natively if the device finished to load so it waits for a message (it can be a letter, a number or whatever you like) that indicates it's ready
 ### getParser()
 ```
 PortManager.getParser(): DelimiterParser
@@ -100,7 +106,15 @@ This operations is **not restricted** to the first time you start the communicat
 At some point you would like to stop receiving data, right? But it would be a headache if every time you stop the stream, the port is closed. With **PAUSE** you keep the communication between the server and the hardware, but the data transmission is truly paused and not stored in an internal buffer. 
 
 ### ESC
-It's the contraction of *ESCAPE*. This is an special operation because it "changes" the actual state of the hardware device to a listening state. You can add as much operations as you like to this dictionary. Just take in account that the key of the operation **must be** the same as the value. For example: **{STOP: 'STOP'}**
+It's the contraction of *ESCAPE*. This is an special operation because it "changes" the actual state of the hardware device to a listening state. 
+
+For example, if you are receiving the data from the **FreeFall** experiment, you can execute **ESC** and the Arduino will return to a state where it can check if the code of other experiment is present. This way you can change from which experiment you're getting the data.
+
+
+
+
+You can add as much operations as you like to this dictionary. Just take in account that the key of the operation **must be** the same as the value - for example: **{STOP: 'STOP'}** - and, of course, that your hardware device supports it.
+
 
 ## API
 Yeah, yeah, the server has a beautiful structure, but we're sure you don't want to deal directly with all those methods. That's why we provide a **web-socket based API** to make your application work like magic. Before start, take a look at what's the expected process to establish a proper communication between your app and the hardware [here](#server)
