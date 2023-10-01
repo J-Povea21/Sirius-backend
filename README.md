@@ -59,7 +59,9 @@ We need some way to ensure that the given experiment is present in the Arduino c
 Just like his brothers, the method returns a JSON with the **response** and **message** keys. However, there's an extra logic behind assign *True* or *False* to **response**. For example, let's say that you want to check if the code of the experiment **'FreeFall'** exists in the Arduino. In case it exists, the Arduino should **return the name of the experiment**: **'FreeFall'**. If this happens, **response** will have the value of *True* . This behavior simplifies the architecture and makes more clear what's happening in both sides.
 
 	NOTE:
-	Once you check the code of a certain experiment and the response from the hardware is positive, the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the data from that experiment.
+	Once you check the code of a certain experiment and the response from the hardware is positive, the 
+    Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the 
+    data from that experiment.
 
 If you don't know how to make your Arduino behave this way, take a look of our [documentation](#).
 
@@ -83,7 +85,10 @@ The promise, when solved, can return two values: *True* if the **SerialPort** in
 
 
 	WARNING:
-	As we mentioned before, your hardware device has to print a message to the port once is loaded. Sirius can't determinate natively if the device finished to load so it waits for a message (it can be a letter, a number or whatever you like) that indicates it's ready
+	As we mentioned before, your hardware device has to print a message to the port once is loaded. 
+    Sirius can't determinate natively if the device finished to load so it waits for a message 
+    (it can be a letter, a number or whatever you like) that indicates it's ready
+
 ### getParser()
 ```
 PortManager.getParser(): DelimiterParser
