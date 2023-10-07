@@ -18,29 +18,31 @@ const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
 
 async function findArduino() {
 
-    if (port) return {response: true, message: 'Arduino detected'};
+    if (port) return {status: true, message: 'Arduino detected'};
 
 
     try {
         const portList = await SerialPort.list();
 
-        if (portList.length === 0) return {response: false, message: 'No devices found. Please check the connection'};
+        if (portList.length === 0) return {status: false, message: 'No devices found. Please check the connection'};
 
         // We search if there's an Arduino port and save the path
         portPath = portList.find(port => {
-            if (!port.manufacturer) return false;
-            else return port.manufacturer.includes('Arduino');
+            if (!port.manufacturer)
+                return false;
+             else
+                 return port.manufacturer.includes('Arduino');
         });
 
         portPath = (portPath) ? portPath.path : '';
 
-        if (!portPath) return {response: false, message: 'Arduino not found. Please check the connection'};
+        if (!portPath) return {status: false, message: 'Arduino not found. Please check the connection'};
 
         // If there's a port, we open it and return the status
-        return {response: await openPort(), message: 'Arduino detected'};
+        return {status: await openPort(), message: 'Arduino detected'};
 
     }catch (e) {
-        return {response: false, message: `Error finding arduino: ${e.message}`};
+        return {status: false, message: `Error finding arduino: ${e.message}`};
     }
 
 
@@ -48,31 +50,31 @@ async function findArduino() {
 
 function executeOperation(operation) {
 
-    if( !(operation in PORT_OPERATIONS) ) return {response: false, message: 'Invalid operation'};
+    if( !(operation in PORT_OPERATIONS) ) return {status: false, message: 'Invalid operation'};
 
     try{
         port.write(`${operation}\n`, err => {
-            if (err) return {response: false, message: `Communication error: ${err.message}`};
+            if (err) return {status: false, message: `Communication error: ${err.message}`};
         });
-        return {response: true, message: 'Operation executed'};
+        return {status: true, message: 'Operation executed'};
     }catch (e){
-        return {response: false, message: `Error executing operation: ${e.message}`};
+        return {status: false, message: `Error executing operation: ${e.message}`};
     }
 
 }
 
 async function checkExperimentCode(experiment){
 
-    if (!port) return {response: false, message: 'No arduino detected.The experiment cant be checked'};
+    if (!port) return {status: false, message: 'No arduino detected.The experiment cant be checked'};
 
     port.write(`${experiment}\n`, err => {
-        if (err) return {response: false, message: `Error checking experiment: ${err.message}`};
+        if (err) return {status: false, message: `Error checking experiment: ${err.message}`};
     });
 
-    const response = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
-    const message = (response)? 'OK' : 'The code doesn\'t match the experiment';
+    const status = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
+    const message = (status)? 'OK' : 'The code doesn\'t match the experiment';
 
-    return {response, message};
+    return {status, message};
 }
 
 

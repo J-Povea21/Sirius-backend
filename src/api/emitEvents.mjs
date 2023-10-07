@@ -1,5 +1,5 @@
 /*
-    In this script we have all the logic related to the emit events of the socket. Here we're going to use the fns declared in
+    In this script we have all the logic related to the emit events of the api. Here we're going to use the fns declared in
     the port-manager.mjs module to communicate with the Arduino
  */
 
@@ -61,6 +61,6 @@ export {
     setSocket,
     findArduino,
     checkExperimentCode,
-    startExperiment,
-    changeExperiment
+    startExperiment  ,
+    changeExperiment,
 }

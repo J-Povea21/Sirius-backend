@@ -45,10 +45,10 @@ PortManager.findArduino();
 PortManager.findArduino(): JSON
 ```
 This method returns a JSON with two keys: 
-- **response**:  is the state of the operation. It can be true or false
+- **status**:  is the state of the operation. It can be true or false
 - **message**:  is a description of what happened. It can be "Arduino detected" , "Arduino not found" or an error message
 
-The **response** value depends if the Arduino is found or not. In case the Arduino is found, the method **opens the port** ([openPort()](#openPort)) where the Arduino is located and returns *True*; it returns false otherwise. Of course, if you need this method to behave in a different way you can change it (benefits of open source code) 
+The **status** value depends if the Arduino is found or not. In case the Arduino is found, the method **opens the port** ([openPort()](#openPort)) where the Arduino is located and returns *True*; it returns false otherwise. Of course, if you need this method to behave in a different way you can change it (benefits of open source code) 
 
 ### checkExperimentCode(*experiment*)
 ```
@@ -56,10 +56,10 @@ PortManager.checkExperimentCode('Experiment Name'): JSON
 ```
 We need some way to ensure that the given experiment is present in the Arduino code so the data it starts to send corresponds to this experience. That's where this method comes to the picture.
 
-Just like his brothers, the method returns a JSON with the **response** and **message** keys. However, there's an extra logic behind assign *True* or *False* to **response**. For example, let's say that you want to check if the code of the experiment **'FreeFall'** exists in the Arduino. In case it exists, the Arduino should **return the name of the experiment**: **'FreeFall'**. If this happens, **response** will have the value of *True* . This behavior simplifies the architecture and makes more clear what's happening in both sides.
+Just like his brothers, the method returns a JSON with the **status** and **message** keys. However, there's an extra logic behind assign *True* or *False* to **status**. For example, let's say that you want to check if the code of the experiment **'FreeFall'** exists in the Arduino. In case it exists, the Arduino should **return the name of the experiment**: **'FreeFall'**. If this happens, **status** will have the value of *True* . This behavior simplifies the architecture and makes more clear what's happening in both sides.
 
 	NOTE:
-	Once you check the code of a certain experiment and the response from the hardware is positive, the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the data from that experiment.
+	Once you check the code of a certain experiment and the status from the hardware is positive, the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the data from that experiment.
 
 If you don't know how to make your Arduino behave this way, take a look of our [documentation](#).
 
@@ -68,10 +68,10 @@ If you don't know how to make your Arduino behave this way, take a look of our [
 PortManager.executeOperation(PORT_OPERATIONS.INIT): JSON
 ```
 Technically, this method prints certain strings to the port. This strings are read by the Arduino and processed. Just like the other methods, this returns a JSON with:
-- **response**: it can be true or false
+- **status**: it can be true or false
 - **message**: it can be 'Operation executed successfully' or another error message like 'Invalid operation'
 
-What makes the **response** value *true* or *false* is if there is a problem while writing to the port or if the operation doesn't exists in the [PORT_OPERATIONS](#PORT_OPERATIONS) dict. If none of these cases happens, **response** is just *true*.
+What makes the **status** value *true* or *false* is if there is a problem while writing to the port or if the operation doesn't exists in the [PORT_OPERATIONS](#PORT_OPERATIONS) dict. If none of these cases happens, **status** is just *true*.
 
 ### openPort()
 ```
@@ -131,7 +131,10 @@ Now, connect to the back-end server:
 
 import {io} from "socket.io-client"
 
-const socket = io('http://localhost:3000');
+const socket = io('http://localhost:3000', {
+    path: '/api/',
+    transports: ['websocket', 'polling']
+});
 ```
 
 And you're ready to go!
@@ -140,7 +143,7 @@ A web-socket emits and listens to events. In your application, you just need to 
 ```
 socket.emit('someEvent');
 
-socket.on('someEvent', response =>{
+socket.on('someEvent', status =>{
 	//do stuff
 });
 ```
@@ -170,11 +173,11 @@ Here's an example:
 //1. Check if the code of the experiment exists
 socket.emit('checkExperiment', 'FreeFall');
 
-//2. Listen to the response
+//2. Listen to the status
 socket.on('checkExperiment', res => {
 
 	//3. Starts the data transmission
-	if(res.response === true){
+	if(res.status === true){
 		socket.emit('startExperiment', true, 'expData');
 	}
 	
