@@ -10,6 +10,7 @@ import {DelimiterParser} from "@serialport/parser-delimiter";
 let portPath = '';
 let port = null;
 let dataParser = null;
+let portOpen = false;
 
 // PORT OPERATIONS
 const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
@@ -18,15 +19,20 @@ const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
 
 async function findArduino() {
 
-    if (port) return {status: true, message: 'Arduino detected'};
-
-
     try {
         const portList = await SerialPort.list();
+        const devicesConnected = portList.length > 0;
 
-        if (portList.length === 0) return {status: false, message: 'No devices found. Please check the connection'};
+        if (!devicesConnected){
+            // If no devices are detected, we reset all the variables
+            resetAllVars();
+            return {status: false, message: 'No devices found. Please check the connection'};
 
-        // We search if there's an Arduino port and save the path
+        }else if (portOpen){
+            return {status: true, message: 'Arduino detected'};
+        }
+
+        // We search if there's an Arduino port
         portPath = portList.find(port => {
             if (!port.manufacturer)
                 return false;
@@ -38,8 +44,10 @@ async function findArduino() {
 
         if (!portPath) return {status: false, message: 'Arduino not found. Please check the connection'};
 
-        // If there's a port, we open it and return the status
-        return {status: await openPort(), message: 'Arduino detected'};
+        // If there's a port, we try to open it and assign the returned value to portOpen
+        portOpen = await openPort();
+
+        return {status: portOpen, message: 'Arduino detected'};
 
     }catch (e) {
         return {status: false, message: `Error finding arduino: ${e.message}`};
@@ -103,6 +111,13 @@ function waitResponse(){
 
 function getParser() {
     return dataParser;
+}
+
+function resetAllVars(){
+    portOpen = false;
+    portPath = '';
+    port = null;
+    dataParser = null;
 }
 
 export {

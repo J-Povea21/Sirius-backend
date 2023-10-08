@@ -2,16 +2,20 @@
     In this script we have all the logic related to the on events of the api
 */
 
-import * as EmitEvents from "./emitEvents.mjs";
+import * as EmitEvents from "./emit-events.mjs";
 
 export function setConnection(socket, app){
 
     EmitEvents.setSocket(socket);
-    socket.on('disconnect', () => console.log('Socket disconnected'));
+    socket.on('disconnect', () => app.log.info('Socket disconnected'));
+
     socket.on('findArduino', () => EmitEvents.findArduino());
     socket.on('checkExperiment', experiment => EmitEvents.checkExperimentCode(experiment));
+
     socket.on('startExperiment', (runExperiment, experiment) => EmitEvents.startExperiment(runExperiment, experiment));
     socket.on('changeExperiment', () => EmitEvents.changeExperiment());
+
+    socket.on('checkConn', experiment => EmitEvents.checkConnection(experiment));
 }
 
 

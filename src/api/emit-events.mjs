@@ -11,6 +11,21 @@ function setSocket(socket){
     webSocket = socket;
 }
 
+// This method combines the findArduino and the checkExperiment functions
+// to make easier the process of starting an experiment in the frontend
+async function checkConnection(experiment){
+    const arduinoFound = await Port.findArduino();
+
+    // If the arduino wasn't found, we return the JSON
+    if (!arduinoFound.status){
+        emitResponse('checkConn', arduinoFound);
+    }else{
+        const experimentCode = await Port.checkExperimentCode(experiment);
+        emitResponse('checkConn', experimentCode);
+    }
+
+}
+
 async function findArduino(){
     const res = await Port.findArduino();
     emitResponse('findArduino', res);
@@ -63,4 +78,5 @@ export {
     checkExperimentCode,
     startExperiment  ,
     changeExperiment,
+    checkConnection,
 }

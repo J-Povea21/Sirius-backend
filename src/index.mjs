@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import FastifyIO from "fastify-socket.io";
-import {setConnection} from "./api/onEvents.mjs";
+import {setConnection} from "./api/on-events.mjs";
 
 const app = Fastify({
     logger: true
@@ -36,7 +36,7 @@ app.listen({port: 3000}, (err, address) => {
     }
 
     app.io.on('connection', socket => {
-        console.log('Socket connected');
+        app.log.info('Socket connected');
         setConnection(socket, app)
     });
 

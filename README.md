@@ -20,7 +20,7 @@ Sirius is an app that works with hardware. In order to receive data from this ha
 ### The server-hardware communication
 Is important to understand what's the expected process in order to establish a communication between Sirius and your hardware device. Take a look at this brief diagram:
 
-![[Brief-Diagram.png]]
+![Brief-Diagram.png](Brief-Diagram.png)
 
 ### Port manager object
 The first thing you need to know is that all the functions in the diagram are methods of a PortManager object. These methods are exported at the end of the file. From now on when we use PortManager.method() we're using this object
@@ -59,7 +59,9 @@ We need some way to ensure that the given experiment is present in the Arduino c
 Just like his brothers, the method returns a JSON with the **status** and **message** keys. However, there's an extra logic behind assign *True* or *False* to **status**. For example, let's say that you want to check if the code of the experiment **'FreeFall'** exists in the Arduino. In case it exists, the Arduino should **return the name of the experiment**: **'FreeFall'**. If this happens, **status** will have the value of *True* . This behavior simplifies the architecture and makes more clear what's happening in both sides.
 
 	NOTE:
-	Once you check the code of a certain experiment and the status from the hardware is positive, the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the data from that experiment.
+	Once you check the code of a certain experiment and the response (status key) from the hardware is positive, 
+    the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the 
+    data from that experiment.
 
 If you don't know how to make your Arduino behave this way, take a look of our [documentation](#).
 
@@ -81,9 +83,11 @@ Opens the port where the Arduino is located and pipes a **DelimiterParser** to t
 
 The promise, when solved, can return two values: *True* if the **SerialPort** instance is created successfully and the Arduino sent a message indicating that is completely loaded. *err* if a problem happened opening the port.
 
-
 	WARNING:
-	As we mentioned before, your hardware device has to print a message to the port once is loaded. Sirius can't determinate natively if the device finished to load so it waits for a message (it can be a letter, a number or whatever you like) that indicates it's ready
+	As we mentioned before, your hardware device has to print a message to the port once is loaded. 
+    Sirius can't determinate natively if the device finished to load so it waits for a message 
+    (it can be a letter, a number or whatever you like) that indicates it's ready
+
 ### getParser()
 ```
 PortManager.getParser(): DelimiterParser
@@ -148,6 +152,12 @@ socket.on('someEvent', status =>{
 });
 ```
 
+#### checkConn
+```
+socket.emit('checkConn', 'experiment');
+```
+Triggers the [findArduino()](#findArduino) and the [checkExperimentCode(exp)](#checkexperimentcodeexperiment) methods at the same time. This event expects as argument the **name of the experiment** you want to check.
+
 #### findArduino
 ```
 socket.emit('findArduino');
@@ -157,7 +167,7 @@ This event triggers the [findArduino()](#findArduino) method. With this, you can
 ```
 socket.emit('checkExperiment', 'FreeFall');
 ```
-Triggers the [checkExperimentCode(exp)](#checkExperimentCode(experiment)) method. Please note that you **need to send** the experiment you want to check
+Triggers the [checkExperimentCode(exp)](#checkexperimentcodeexperiment) method. Please note that you **need to send** the experiment you want to check
 #### startExperiment
 ```
 socket.emit('startExperiment', runExperiment, 'responseEventName')
@@ -170,16 +180,18 @@ Here's an example:
 ```
 // somewhere.mjs
 
-//1. Check if the code of the experiment exists
-socket.emit('checkExperiment', 'FreeFall');
+//1. Establish the connection and enter to the desired experiment
+socket.emit('checkConn', 'FreeFall');
 
 //2. Listen to the status
-socket.on('checkExperiment', res => {
+socket.on('checkConn', res => {
 
-	//3. Starts the data transmission
-	if(res.status === true){
+	//3. Starts the data transmission 
+	if(res.status === true)
 		socket.emit('startExperiment', true, 'expData');
-	}
+	else
+	    console.log(res.message);
+	
 	
 });
 
@@ -194,5 +206,5 @@ socket.on('expData', data => {
 ```
 socket.emit('changeExperiment');
 ```
-Triggers the [executeOperation(exp)](#executeOperation(operationToExecute)) method with the [ESC](#esc) operation. If you're receiving data from the **FreeFall** experiment, you can use this method to check the code for another experiment and start receiving the corresponding data.
+Triggers the [executeOperation(exp)](#executeoperationoperationtoexecute) method with the [ESC](#esc) operation. If you're receiving data from the **FreeFall** experiment, you can use this method to check the code for another experiment and start receiving the corresponding data.
 
