@@ -1,5 +1,5 @@
 /*
-    In this script we have all the logic related to the emit events of the socket. Here we're going to use the fns declared in
+    In this script we have all the logic related to the emit events of the api. Here we're going to use the fns declared in
     the port-manager.mjs module to communicate with the Arduino
  */
 
@@ -9,6 +9,21 @@ let webSocket = null;
 
 function setSocket(socket){
     webSocket = socket;
+}
+
+// This method combines the findArduino and the checkExperiment functions
+// to make easier the process of starting an experiment in the frontend
+async function checkConnection(experiment){
+    const arduinoFound = await Port.findArduino();
+
+    // If the arduino wasn't found, we return the JSON
+    if (!arduinoFound.status){
+        emitResponse('checkConn', arduinoFound);
+    }else{
+        const experimentCode = await Port.checkExperimentCode(experiment);
+        emitResponse('checkConn', experimentCode);
+    }
+
 }
 
 async function findArduino(){
@@ -63,6 +78,7 @@ export {
     setSocket,
     findArduino,
     checkExperimentCode,
-    startExperiment,
-    changeExperiment
+    startExperiment  ,
+    changeExperiment,
+    checkConnection,
 }
