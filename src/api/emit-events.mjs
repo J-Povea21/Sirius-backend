@@ -41,7 +41,7 @@ async function startExperiment(runExperiment, experiment){
     const res = await Port.executeOperation(operationToExecute);
 
     emitResponse('operationResponse', res);
-    if (res.response) emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
+    if (res.status) emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
 }
 
 /*
