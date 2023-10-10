@@ -16,8 +16,8 @@ async function checkConnection(experiment) {
     // If the arduino wasn't found, we return the JSON
     if (!arduinoFound.status)
         emitResponse('checkConn', arduinoFound);
-    else if(portAlreadyOpen.status)
-        emitResponse('checkConn', portAlreadyOpen);
+    else if(portAlreadyOpen)
+        emitResponse('checkConn', arduinoFound);
     else{
         const experimentCode = await Port.checkExperimentCode(experiment);
         emitResponse('checkConn', experimentCode);

@@ -29,7 +29,7 @@ async function findArduino() {
             return {status: false, message: 'No devices found. Please check the connection'};
 
         }else if (portOpen){
-            return {status: true, message: 'Arduino detected'};
+            return {status: true, message: 'Connection already established'};
         }
 
         // We search if there's an Arduino port
@@ -114,8 +114,7 @@ function getParser() {
 }
 
 function getPortStatus(){
-    const message = (portOpen) ? 'Connection already established' : 'Connection not established';
-    return {status: portOpen, message};
+    return portOpen;
 }
 
 function resetAllVars(){
