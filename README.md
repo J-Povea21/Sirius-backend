@@ -69,7 +69,7 @@ If you don't know how to make your Arduino behave this way, take a look of our [
 ```
 PortManager.executeOperation(PORT_OPERATIONS.INIT): JSON
 ```
-Technically, this method prints certain strings to the port. This strings are read by the Arduino and processed. Just like the other methods, this returns a JSON with:
+Technically, this method prints certain strings to the port. These strings are read by the Arduino and processed. Just like the other methods, this returns a JSON with:
 - **status**: it can be true or false
 - **message**: it can be 'Operation executed successfully' or another error message like 'Invalid operation'
 
@@ -79,7 +79,7 @@ What makes the **status** value *true* or *false* is if there is a problem while
 ```
 PortManager.openPort(): Promise
 ```
-Opens the port where the Arduino is located and pipes a **DelimiterParser** to the port. It returns a promise. 
+Opens the port where the Arduino is located and pipes a [DelimiterParser](https://serialport.io/docs/api-parser-delimiter) to the port. It returns a promise. 
 
 The promise, when solved, can return two values: *True* if the **SerialPort** instance is created successfully and the Arduino sent a message indicating that is completely loaded. *err* if a problem happened opening the port.
 
@@ -124,7 +124,7 @@ You can add as much operations as you like to this dictionary. Just take in acco
 Yeah, yeah, the server has a beautiful structure, but we're sure you don't want to deal directly with all those methods. That's why we provide a **web-socket based API** to make your application work like magic. Before start, take a look at what's the expected process to establish a proper communication between your app and the hardware [here](#server)
 
 ### Setup
-Our web-socket API uses [SocketIO](). To establish the connection with the server, make sure to install the socket.io-client in your front-end app
+Our web-socket API uses [SocketIO](https://socket.io/docs/v4/). To establish the connection with the server, make sure to install the socket.io-client in your front-end app
 ```
 npm i socket.io-client
 ```
@@ -172,7 +172,7 @@ Triggers the [checkExperimentCode(exp)](#checkexperimentcodeexperiment) method. 
 ```
 socket.emit('startExperiment', runExperiment, 'responseEventName')
 ```
-Triggers the [executeOperation(operation)](#executeOperation(operationToExecute)) method. This event expect two arguments: 
+Triggers the [executeOperation(operation)](#executeoperationoperationtoexecute) method. This event expect two arguments: 
 - **runExperiment**: do you want to start receiving data? You need to pass *true*. Oh, now you want to pause the data transmission? Pass a *false* value
 - **responseEventName**: what's the name of the event you want to listen when data starts to be sent? It can be 'data' or the same name of the experiment you checked
 

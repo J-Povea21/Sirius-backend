@@ -7,19 +7,18 @@ import * as Port from "../hardware/port-manager.mjs";
 
 let webSocket = null;
 
-function setSocket(socket){
-    webSocket = socket;
-}
-
 // This method combines the findArduino and the checkExperiment functions
 // to make easier the process of starting an experiment in the frontend
-async function checkConnection(experiment){
+async function checkConnection(experiment) {
     const arduinoFound = await Port.findArduino();
+    const portAlreadyOpen = Port.getPortStatus()
 
     // If the arduino wasn't found, we return the JSON
-    if (!arduinoFound.status){
+    if (!arduinoFound.status)
         emitResponse('checkConn', arduinoFound);
-    }else{
+    else if(portAlreadyOpen.status)
+        emitResponse('checkConn', portAlreadyOpen);
+    else{
         const experimentCode = await Port.checkExperimentCode(experiment);
         emitResponse('checkConn', experimentCode);
     }
@@ -57,18 +56,22 @@ async function changeExperiment(){
 }
 
 
-function emitResponse(event, response){
-    webSocket.emit(event, response);
-}
-
 function emitExperimentData(exp){
     const dataParser = Port.getParser();
 
     dataParser.on('data', sensorData => {
-       const parsedData = JSON.parse(sensorData);
-       webSocket.emit(exp, parsedData);
+        const parsedData = JSON.parse(sensorData);
+        webSocket.emit(exp, parsedData);
     });
 
+}
+
+function emitResponse(event, response){
+    webSocket.emit(event, response);
+}
+
+function setSocket(socket){
+    webSocket = socket;
 }
 
 

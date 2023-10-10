@@ -113,6 +113,11 @@ function getParser() {
     return dataParser;
 }
 
+function getPortStatus(){
+    const message = (portOpen) ? 'Connection already established' : 'Connection not established';
+    return {status: portOpen, message};
+}
+
 function resetAllVars(){
     portOpen = false;
     portPath = '';
@@ -123,7 +128,8 @@ function resetAllVars(){
 export {
     findArduino,
     checkExperimentCode,
-    getParser,
+    PORT_OPERATIONS,
     executeOperation,
-    PORT_OPERATIONS
+    getParser,
+    getPortStatus,
 };
