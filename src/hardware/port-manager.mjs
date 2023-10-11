@@ -11,6 +11,7 @@ let portPath = '';
 let port = null;
 let dataParser = null;
 let portOpen = false;
+let experimentChecked = false;
 
 // PORT OPERATIONS
 const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
@@ -75,12 +76,16 @@ async function checkExperimentCode(experiment){
 
     if (!port) return {status: false, message: 'No arduino detected.The experiment cant be checked'};
 
+    if (experimentChecked) return {status: true, message: 'Connection already established'};
+
     port.write(`${experiment}\n`, err => {
         if (err) return {status: false, message: `Error checking experiment: ${err.message}`};
     });
 
     const status = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
     const message = (status)? 'OK' : 'The code doesn\'t match the experiment';
+
+    if (status) experimentChecked = true;
 
     return {status, message};
 }
@@ -118,11 +123,20 @@ function getPortStatus(){
     return {status: portOpen, message};
 }
 
+function getExperimentChecked(){
+    return experimentChecked;
+}
+
+function setExperimentChecked(value){
+    experimentChecked = value;
+}
+
 function resetAllVars(){
     portOpen = false;
     portPath = '';
     port = null;
     dataParser = null;
+    experimentChecked = false;
 }
 
 export {
@@ -132,4 +146,6 @@ export {
     executeOperation,
     getParser,
     getPortStatus,
+    getExperimentChecked,
+    setExperimentChecked,
 };

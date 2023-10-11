@@ -11,14 +11,12 @@ let webSocket = null;
 // to make easier the process of starting an experiment in the frontend
 async function checkConnection(experiment) {
     const arduinoFound = await Port.findArduino();
-    const portAlreadyOpen = Port.getPortStatus()
+    const experimentChecked = Port.getExperimentChecked();
 
     // If the arduino wasn't found, we return the JSON
-    if (!arduinoFound.status)
+    if (!arduinoFound.status) {
         emitResponse('checkConn', arduinoFound);
-    else if(portAlreadyOpen.status)
-        emitResponse('checkConn', portAlreadyOpen);
-    else{
+    }else{
         const experimentCode = await Port.checkExperimentCode(experiment);
         emitResponse('checkConn', experimentCode);
     }
@@ -50,6 +48,9 @@ async function startExperiment(runExperiment, experiment){
 async function changeExperiment(){
     // We remove all the listeners from the parser
     getParser().removeAllListeners();
+
+    // Due to the fact that now we're going to listen to use the ESC operation, we set experimentChecked to false
+    Port.setExperimentChecked(false);
 
     const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
     emitResponse('operationResponse', response);
