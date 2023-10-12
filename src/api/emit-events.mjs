@@ -11,7 +11,6 @@ let webSocket = null;
 // to make easier the process of starting an experiment in the frontend
 async function checkConnection(experiment) {
     const arduinoFound = await Port.findArduino();
-    const experimentChecked = Port.getExperimentChecked();
 
     // If the arduino wasn't found, we return the JSON
     if (!arduinoFound.status) {
@@ -37,7 +36,6 @@ async function startExperiment(runExperiment, experiment){
     const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
     const res = await Port.executeOperation(operationToExecute);
 
-    emitResponse('operationResponse', res);
     if (res.status) emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
 }
 
@@ -53,7 +51,7 @@ async function changeExperiment(){
     Port.setExperimentChecked(false);
 
     const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
-    emitResponse('operationResponse', response);
+    emitResponse('changeExperiment', response); 
 }
 
 

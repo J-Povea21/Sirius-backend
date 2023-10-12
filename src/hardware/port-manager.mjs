@@ -60,6 +60,7 @@ async function findArduino() {
 function executeOperation(operation) {
 
     if( !(operation in PORT_OPERATIONS) ) return {status: false, message: 'Invalid operation'};
+    if (!port) return {status: false, message: 'No arduino detected. Please check the connection'};
 
     try{
         port.write(`${operation}\n`, err => {
@@ -98,7 +99,13 @@ function openPort(){
         port = new SerialPort({path: portPath, baudRate: 9600});
         dataParser = port.pipe(new DelimiterParser({delimiter: '\r\n', encoding: 'utf8'}));
 
-        dataParser.once('data', () => resolve(true));
+        // Here we start a setTimeOut so in case we don't receive any data from the arduino, we resolve the promise with false
+        const timeoutID = setTimeout(() => resolve(false), 5000); // 5 seconds
+
+        dataParser.once('data', () =>{
+            clearTimeout(timeoutID);
+            resolve(true);
+        });
 
         port.once('error', (err) => reject(err) );
 
@@ -118,18 +125,10 @@ function getParser() {
     return dataParser;
 }
 
-function getPortStatus(){
-    const message = (portOpen) ? 'Connection already established' : 'Connection not established';
-    return {status: portOpen, message};
-}
-
-function getExperimentChecked(){
-    return experimentChecked;
-}
-
 function setExperimentChecked(value){
     experimentChecked = value;
 }
+
 
 function resetAllVars(){
     portOpen = false;
@@ -145,7 +144,5 @@ export {
     PORT_OPERATIONS,
     executeOperation,
     getParser,
-    getPortStatus,
-    getExperimentChecked,
     setExperimentChecked,
 };
