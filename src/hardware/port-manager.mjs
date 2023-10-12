@@ -99,13 +99,7 @@ function openPort(){
         port = new SerialPort({path: portPath, baudRate: 9600});
         dataParser = port.pipe(new DelimiterParser({delimiter: '\r\n', encoding: 'utf8'}));
 
-        // Here we start a setTimeOut so in case we don't receive any data from the arduino, we resolve the promise with false
-        const timeoutID = setTimeout(() => resolve(false), 5000); // 5 seconds
-
-        dataParser.once('data', () =>{
-            clearTimeout(timeoutID);
-            resolve(true);
-        });
+        dataParser.once('data', () => resolve(true));
 
         port.once('error', (err) => reject(err) );
 
