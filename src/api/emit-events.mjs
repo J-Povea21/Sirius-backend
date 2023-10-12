@@ -19,7 +19,6 @@ async function checkConnection(experiment) {
         const experimentCode = await Port.checkExperimentCode(experiment);
         emitResponse('checkConn', experimentCode);
     }
-
 }
 
 async function findArduino(){
@@ -36,7 +35,11 @@ async function startExperiment(runExperiment, experiment){
     const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
     const res = await Port.executeOperation(operationToExecute);
 
-    if (res.status) emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
+
+    if (res.status && runExperiment)
+        emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
+    else if (!runExperiment)
+        removeListeners();
 }
 
 /*
@@ -45,7 +48,7 @@ async function startExperiment(runExperiment, experiment){
  */
 async function changeExperiment(){
     // We remove all the listeners from the parser
-    getParser().removeAllListeners();
+    removeListeners();
 
     // Due to the fact that now we're going to listen to use the ESC operation, we set experimentChecked to false
     Port.setExperimentChecked(false);
@@ -57,6 +60,7 @@ async function changeExperiment(){
 
 function emitExperimentData(exp){
     const dataParser = Port.getParser();
+    console.log('Emitting data');
 
     dataParser.on('data', sensorData => {
         const parsedData = JSON.parse(sensorData);
@@ -71,6 +75,10 @@ function emitResponse(event, response){
 
 function setSocket(socket){
     webSocket = socket;
+}
+
+function removeListeners(){
+    Port.getParser().removeAllListeners();
 }
 
 
