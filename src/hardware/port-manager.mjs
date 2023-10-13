@@ -11,7 +11,6 @@ let portPath = '';
 let port = null;
 let dataParser = null;
 let portOpen = false;
-let experimentChecked = false;
 
 // PORT OPERATIONS
 const PORT_OPERATIONS = {PAUSE: 'PAUSE', INIT: 'INIT', ESC: 'ESC'};
@@ -30,7 +29,7 @@ async function findArduino() {
             return {status: false, message: 'No devices found. Please check the connection'};
 
         }else if (portOpen){
-            return {status: true, message: 'Arduino detected'};
+            return {status: true, message: 'Connection already established'};
         }
 
         // We search if there's an Arduino port
@@ -60,7 +59,6 @@ async function findArduino() {
 function executeOperation(operation) {
 
     if( !(operation in PORT_OPERATIONS) ) return {status: false, message: 'Invalid operation'};
-    if (!port) return {status: false, message: 'No arduino detected. Please check the connection'};
 
     try{
         port.write(`${operation}\n`, err => {
@@ -77,16 +75,12 @@ async function checkExperimentCode(experiment){
 
     if (!port) return {status: false, message: 'No arduino detected.The experiment cant be checked'};
 
-    if (experimentChecked) return {status: true, message: 'Connection already established'};
-
     port.write(`${experiment}\n`, err => {
         if (err) return {status: false, message: `Error checking experiment: ${err.message}`};
     });
 
     const status = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
     const message = (status)? 'OK' : 'The code doesn\'t match the experiment';
-
-    if (status) experimentChecked = true;
 
     return {status, message};
 }
@@ -119,17 +113,15 @@ function getParser() {
     return dataParser;
 }
 
-function setExperimentChecked(value){
-    experimentChecked = value;
+function getPortStatus(){
+    return portOpen;
 }
-
 
 function resetAllVars(){
     portOpen = false;
     portPath = '';
     port = null;
     dataParser = null;
-    experimentChecked = false;
 }
 
 export {
@@ -138,5 +130,5 @@ export {
     PORT_OPERATIONS,
     executeOperation,
     getParser,
-    setExperimentChecked,
+    getPortStatus,
 };

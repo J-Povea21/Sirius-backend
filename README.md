@@ -5,6 +5,7 @@ Hi, everyone! Welcome to the Sirius's back-end documentation. Here you will find
 - [Installation](#installation)
 - [Server](#server)
 - [Web-socket API](#api)
+- [Arduino docs](src/hardware/arduino/README.md)
 
 
 
@@ -63,7 +64,7 @@ Just like his brothers, the method returns a JSON with the **status** and **mess
     the Arduino will enter to the experiment. So, if you execute the INIT operation you will receive the 
     data from that experiment.
 
-If you don't know how to make your Arduino behave this way, take a look of our [documentation](#).
+If you don't know how to make your Arduino behave this way, take a look of our [documentation](src/hardware/arduino/README.md).
 
 ### executeOperation(*operationToExecute*)
 ```
