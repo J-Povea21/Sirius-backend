@@ -11,14 +11,11 @@ let webSocket = null;
 // to make easier the process of starting an experiment in the frontend
 async function checkConnection(experiment) {
     const arduinoFound = await Port.findArduino();
-    const portAlreadyOpen = Port.getPortStatus()
 
     // If the arduino wasn't found, we return the JSON
-    if (!arduinoFound.status)
+    if (!arduinoFound.status){
         emitResponse('checkConn', arduinoFound);
-    else if(portAlreadyOpen)
-        emitResponse('checkConn', arduinoFound);
-    else{
+    }else{
         const experimentCode = await Port.checkExperimentCode(experiment);
         emitResponse('checkConn', experimentCode);
     }
@@ -39,8 +36,15 @@ async function startExperiment(runExperiment, experiment){
     const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
     const res = await Port.executeOperation(operationToExecute);
 
-    emitResponse('operationResponse', res);
-    if (res.status) emitExperimentData(experiment); //If the operation was executed successfully, we start emitting data
+
+    if (!res.status){
+        emitResponse(experiment, res);
+    }else if (!runExperiment){
+        removeListeners();
+    }else if (res.status && runExperiment){
+        emitExperimentData(experiment);
+    }
+
 }
 
 /*
@@ -49,7 +53,10 @@ async function startExperiment(runExperiment, experiment){
  */
 async function changeExperiment(){
     // We remove all the listeners from the parser
-    getParser().removeAllListeners();
+    removeListeners();
+
+     // Due to the fact that now we're going to use the ESC operation, we set experimentChecked to false
+    Port.setExperimentChecked(false);
 
     const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
     emitResponse('operationResponse', response);
@@ -58,6 +65,7 @@ async function changeExperiment(){
 
 function emitExperimentData(exp){
     const dataParser = Port.getParser();
+    console.log('Emitting data');
 
     dataParser.on('data', sensorData => {
         const parsedData = JSON.parse(sensorData);
@@ -74,6 +82,9 @@ function setSocket(socket){
     webSocket = socket;
 }
 
+function removeListeners(){
+    Port.getParser().removeAllListeners();
+}
 
 export {
     setSocket,
