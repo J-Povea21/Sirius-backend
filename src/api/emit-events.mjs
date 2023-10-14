@@ -59,7 +59,7 @@ async function changeExperiment(){
     Port.setExperimentChecked(false);
 
     const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
-    emitResponse('operationResponse', response);
+    emitResponse('changeExperiment', response);
 }
 
 
