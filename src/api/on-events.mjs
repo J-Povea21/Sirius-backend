@@ -17,8 +17,6 @@ export function setConnection(socket, app){
 
     socket.on('checkConn', experiment => EmitEvents.checkConnection(experiment));
 
-
-    //
 }
 
 

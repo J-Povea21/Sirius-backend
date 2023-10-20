@@ -38,7 +38,7 @@ async function startExperiment(runExperiment, experiment){
 
 
     if (!res.status){
-        emitResponse(experiment, res);
+        emitResponse('startExperiment', res);
     }else if (!runExperiment){
         removeListeners();
     }else if (res.status && runExperiment){
@@ -59,17 +59,21 @@ async function changeExperiment(){
     Port.setExperimentChecked(false);
 
     const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
-    emitResponse('changeExperiment', response);
+    emitResponse('changeExperiment', response); 
 }
 
 
 function emitExperimentData(exp){
     const dataParser = Port.getParser();
-    console.log('Emitting data');
 
     dataParser.on('data', sensorData => {
-        const parsedData = JSON.parse(sensorData);
-        webSocket.emit(exp, parsedData);
+        try{
+            const parsedData = JSON.parse(sensorData);
+            webSocket.emit(exp, parsedData);
+        }catch (e) {
+            webSocket.emit(exp, {status: false, message: `Error parsing data: ${e.message}`});
+        }
+
     });
 
 }
