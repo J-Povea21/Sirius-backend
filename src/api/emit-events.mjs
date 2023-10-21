@@ -68,10 +68,11 @@ function emitExperimentData(exp){
 
     dataParser.on('data', sensorData => {
         try{
-            const parsedData = JSON.parse(sensorData);
-            webSocket.emit(exp, parsedData);
+            if(typeof sensorData !== 'string') sensorData = sensorData.toString();
+
+            emitResponse(exp, sensorData);
         }catch (e) {
-            webSocket.emit(exp, {status: false, message: `Error parsing data: ${e.message}`});
+            emitResponse(exp, {status: false, message: `Error parsing data: ${e.message}`});
         }
 
     });
