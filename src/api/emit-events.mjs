@@ -65,7 +65,7 @@ async function changeExperiment(){
 
 function emitExperimentData(exp){
     const dataParser = Port.getParser();
-
+    //el que lea esto es maricaaa
     dataParser.on('data', sensorData => {
         try{
             if(typeof sensorData !== 'string') sensorData = sensorData.toString();
