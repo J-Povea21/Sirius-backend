@@ -202,8 +202,6 @@ void readDistance(){
 
   duration = pulseIn(echoPin, HIGH);
   distance = (duration * 0.0343) / 2;
-  currentTime = millis() - initialTime;
-  currentTime /= 1000.0; // ms to seg
 
   if (distance > 65.0 || distance < 2.0){
     distance = 0.0;
@@ -211,6 +209,8 @@ void readDistance(){
     distance = lastDistance;
   }
 
+  currentTime = millis() - initialTime;
+  currentTime /= 1000.0; // ms to seg
   speed = (distance - lastDistance) / (currentTime - lastMRUATime); // Speed in cm/s
   aceleration = (speed - lastSpeed) / (currentTime - lastMRUATime); // Acceleration in cm/s^2
 
@@ -220,12 +220,12 @@ void readDistance(){
     lastDistance = distance;
   }
 
-  currentTime = millis() - initialTime;
-  currentTime /= 1000.0;
   StaticJsonDocument<200> doc;
   JsonObject ultrasonic = doc.createNestedObject("MRUA");
   ultrasonic["time"] = currentTime;
   ultrasonic["distance"] = distance;
+  ultrasonic["speed"] = speed;
+  ultrasonic["aceleration"] = aceleration;
   serializeJson(doc, Serial);
   Serial.println();
 }
