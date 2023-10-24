@@ -34,7 +34,8 @@ const int delayMRUA = 250, delayFF = 10, delayMF = 250, delayMD = 250, delayKD =
 // MRUA
 const int trigPin = 10, echoPin = 11;
 unsigned long initialTime, duration, lastInitCalledTime = 0, lastPrintTime = 0;
-double currentTime, distance, lastDistance = 0.0;
+double currentTime, distance, lastDistance = 0.0, lastMRUATime = 0.0, lastSpeed = 0.0, aceleration = 0.0;
+float distanceMF;
 bool lastPrintState = true;
 //======================================================================================================================================
 // FREEFALL
@@ -202,24 +203,30 @@ void readDistance(){
 
   duration = pulseIn(echoPin, HIGH);
   distance = (duration * 0.0343) / 2;
-  
+
   if (distance > 65.0 || distance < 2.0){
-    distance = 65.0;
-  }
-  else if (abs(distance-lastDistance) < 0.60){
+    distance = 0.0;
+  } else if (abs(distance - lastDistance) < 0.30){
     distance = lastDistance;
   }
 
+  currentTime = millis() - initialTime;
+  currentTime /= 1000.0; // ms to seg
+  speed = (distance - lastDistance) / (currentTime - lastMRUATime); // Speed in cm/s
+  aceleration = (speed - lastSpeed) / (currentTime - lastMRUATime); // Acceleration in cm/s^2
+
+  lastTime = currentTime;
+  lastSpeed = speed;
   if(distance != lastDistance){
     lastDistance = distance;
   }
 
-  currentTime = millis() - initialTime;
-  currentTime /= 1000.0;
   StaticJsonDocument<200> doc;
   JsonObject ultrasonic = doc.createNestedObject("MRUA");
   ultrasonic["time"] = currentTime;
   ultrasonic["distance"] = distance;
+  ultrasonic["speed"] = speed;
+  ultrasonic["aceleration"] = aceleration;
   serializeJson(doc, Serial);
   Serial.println();
 }
