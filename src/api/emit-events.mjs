@@ -6,6 +6,7 @@
 import * as Port from "../hardware/port-manager.mjs";
 
 let webSocket = null;
+let dataIsBeingSent = false;
 
 // This method combines the findArduino and the checkExperiment functions
 // to make easier the process of starting an experiment in the frontend
@@ -36,6 +37,7 @@ async function startExperiment(runExperiment, experiment){
     const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
     const res = await Port.executeOperation(operationToExecute);
 
+    dataIsBeingSent = runExperiment // We'll use this to handle the different cases when the user logs out of the application
 
     if (!res.status){
         emitResponse('startExperiment', res);
@@ -52,14 +54,19 @@ async function startExperiment(runExperiment, experiment){
     put the arduino in a state where it can listen if the user wants to start another experience
  */
 async function changeExperiment(){
-    // We remove all the listeners from the parser
+
+    if (!port.isExperimentChecked()) return;
+
+    //Before we execute the ESC operation,we need to make sure that the arduino is not going to send more data
+    if (dataIsBeingSent) Port.executeOperation(Port.PORT_OPERATIONS.PAUSE);
+
+    Port.executeOperation(Port.PORT_OPERATIONS.ESC);
+
+    // Once we executed the ESC operation, let's remove any listener from the parser and set experimentChecked to false
     removeListeners();
 
-     // Due to the fact that now we're going to use the ESC operation, we set experimentChecked to false
     Port.setExperimentChecked(false);
 
-    const response = await Port.executeOperation(Port.PORT_OPERATIONS.ESC);
-    emitResponse('changeExperiment', response); 
 }
 
 

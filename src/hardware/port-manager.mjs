@@ -119,6 +119,10 @@ function getParser() {
     return dataParser;
 }
 
+function isExperimentChecked(){
+    return experimentChecked;
+}
+
 function setExperimentChecked(value){
     experimentChecked = value;
 }
@@ -138,5 +142,6 @@ export {
     PORT_OPERATIONS,
     executeOperation,
     getParser,
+    isExperimentChecked,
     setExperimentChecked,
 };
