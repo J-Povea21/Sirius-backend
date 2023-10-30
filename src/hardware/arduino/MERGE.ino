@@ -34,6 +34,7 @@ long map(long x, long inMin, long inMax, long outMin, long outMax){
 //======================================================================================================================================
 // DELAY CONTROLLER
 const int delayMRUA = 250, delayFF = 10, delayMF = 250, delayMD = 250, delayKD = 10, delayTMT = 250;
+const long intervalTone = 10;
 //======================================================================================================================================
 // MRUA
 const int trigPin = 10, echoPin = 11;
@@ -59,9 +60,9 @@ Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 //======================================================================================================================================
 // METAL DETECTOR
 const int buzzPin = 12, thirteenPin = 13;
-int baseFrecuency = 0, frecuencyMD = 0, difference = 0, sensivityMD = 2, autoBalance = 0;
-int waitDuration = 0, toneDuration = 0, toneRepetitions = 0, currentRepetition = 0;
-unsigned long lastMdTime = 0; 
+unsigned long previousTimeTone = 0;
+int buff = 0, frq = 0, difference = 0, sensivityMD = 2, autoBalance = 0, baseFrecuency = 0, frecuencyMD = 0, toneCount = 0;
+bool AB = true;
 //======================================================================================================================================
 // KUNDT'S TUBE
 const int soundSensor = A0;
@@ -88,7 +89,6 @@ void setup()
   // MAGNETIC FIELD: Nothing
   // METAL DETECTOR
   pinMode (buzzPin, OUTPUT);        // Buzzer Dpin
-  pinMode (thirteenPin, OUTPUT);    // MD Dpin
   // KUNDT'S TUBE
   lastTime = micros();              // Inicial relative time
   // THERMOMETER
@@ -171,9 +171,9 @@ void loop()
         break;
     case MD:
         while (experimentDetector == "MD") {
-          if (calibrationState == false){
-            detectMetal();
-            calibrationState = true;      
+          if (freqStatus == false){
+            setupMD();
+            freqStatus = true;      
           }
           executeOperation(detectMetal, delayMD);
         }
@@ -326,116 +326,56 @@ void hallSensorCalibration(){
 }
 //======================================================================================================================================
 // METAL DETECTOR
-enum MetalDetectState {
-  CALIBRATION_START,
-  CALIBRATION_CHECK_FREQ,
-  CALIBRATION_TONE_HIGH,
-  CALIBRATION_TONE_LOW,
-  IDLE,
-  START_TONE_HIGH,
-  WAIT_TONE_HIGH,
-  START_TONE_LOW,
-  WAIT_TONE_LOW,
-  WAIT_AFTER_TONE,
-  SEND_JSON
-};
+void setupMD(){
+  FreqCount.begin(200);
+  frecuencyMD = FreqCount.read();
+  baseFrecuency = frecuencyMD;
 
-MetalDetectState currentState = CALIBRATION_START;
-void detectMetal() {
+  for(int i=0; i<5; i++){
+    generateTone(buzzPin, 2, 10);
+    delay(20);
+    frecuencyMD = FreqCount.read();
+    if(frecuencyMD != baseFrecuency){ 
+      baseFrecuency = frecuencyMD;
+      i = 0;
+    }
+  }
+  generateTone(buzzPin, 1, 20);
+}
+
+void detectMetal(){
   frecuencyMD = FreqCount.read();
   difference = baseFrecuency - frecuencyMD;
+  // Ferrous metal
+  if(difference > sensivityMD){
+    generateTone(buzzPin, 2, 10);
+    delay(40-(constrain(difference*5,10,40)));
+    StaticJsonDocument<200> doc;
+    JsonObject MDJson = doc.createNestedObject("MD");
+    MDJson["isFerrous"] = "1";
+    serializeJson(doc, Serial);
+    Serial.println();
+  }
+  // Non-Ferrous metal
+  else if(difference <- sensivityMD){   
+    difference = -difference;
+    generateTone(buzzPin, 1, 20);
+    delay(40-(constrain(difference * 5, 10, 40)));
+    StaticJsonDocument<200> doc;
+    JsonObject MDJson = doc.createNestedObject("MD");
+    MDJson["isFerrous"] = "0";
+    serializeJson(doc, Serial);
+    Serial.println();
+  }
+  frecuencyMD = 0;
+}
 
-  switch (currentState) {
-    case CALIBRATION_START:
-      FreqCount.begin(200);
-      baseFrecuency = FreqCount.read();
-      currentRepetition = 0;
-      currentState = CALIBRATION_TONE_HIGH;
-      break;
-
-    case CALIBRATION_CHECK_FREQ:
-      frecuencyMD = FreqCount.read();
-      if(frecuencyMD != baseFrecuency){
-        baseFrecuency = frecuencyMD;
-        currentRepetition = 0;  // Reset the count
-        currentState = CALIBRATION_TONE_HIGH;
-      } else {
-        currentState = IDLE;
-      }
-      break;
-
-    case CALIBRATION_TONE_HIGH:
-      digitalWrite(buzzPin, HIGH);
-      lastMdTime = millis();
-      toneDuration = 2;
-      currentState = CALIBRATION_TONE_LOW;
-      break;
-
-    case CALIBRATION_TONE_LOW:
-      digitalWrite(buzzPin, LOW);
-      currentRepetition++;
-      lastMdTime = millis();
-      if(currentRepetition < 5) {
-        currentState = CALIBRATION_CHECK_FREQ;
-      } else {
-        currentState = IDLE;
-      }
-      break;
-
-    case IDLE:
-      if (difference > sensivityMD) {
-        toneDuration = 2;
-        toneRepetitions = 10;
-        currentState = START_TONE_HIGH;
-      } else if (difference < -sensivityMD) {
-        difference = -difference;
-        toneDuration = 1;
-        toneRepetitions = 20;
-        currentState = START_TONE_HIGH;
-      }
-      break;
-
-    case START_TONE_HIGH:
-      digitalWrite(buzzPin, HIGH);
-      lastMdTime = millis();
-      currentState = WAIT_TONE_HIGH;
-      break;
-
-    case WAIT_TONE_HIGH:
-      if (millis() - lastMdTime >= toneDuration) {
-        currentState = START_TONE_LOW;
-      }
-      break;
-
-    case START_TONE_LOW:
-      digitalWrite(buzzPin, LOW);
-      currentRepetition++;
-      lastMdTime = millis();
-      currentState = (currentRepetition < toneRepetitions) ? WAIT_TONE_LOW : WAIT_AFTER_TONE;
-      break;
-
-    case WAIT_TONE_LOW:
-      if (millis() - lastMdTime >= toneDuration) {
-        currentState = START_TONE_HIGH;
-      }
-      break;
-
-    case WAIT_AFTER_TONE:
-      waitDuration = 40 - (constrain(difference * 5, 10, 40));
-      if (millis() - lastMdTime >= waitDuration) {
-        currentRepetition = 0;  // Reset for next time
-        currentState = SEND_JSON;
-      }
-      break;
-
-    case SEND_JSON:
-      StaticJsonDocument<200> doc;
-      JsonObject MDJson = doc.createNestedObject("MD");
-      MDJson["isFerrous"] = (difference > sensivityMD) ? "YES" : "NOT";
-      serializeJson(doc, Serial);
-      Serial.println();
-      currentState = IDLE;
-      break;
+void generateTone(int pin, int duration, int repetitions){
+  for(int i=0; i<repetitions; i++) {
+    digitalWrite(pin, HIGH);
+    delay(duration);
+    digitalWrite(pin, LOW);
+    delay(duration);
   }
 }
 //======================================================================================================================================
@@ -464,6 +404,7 @@ void readFrecuencyLevels(){
     StaticJsonDocument<200> doc;
     JsonObject frecuencyJson = doc.createNestedObject("KD");
     frecuencyJson["frecuency"] = frecuencyKD;
+    frecuencyJson["amplitude"] = currentValue;
     serializeJson(doc, Serial);
     Serial.println();
 
@@ -476,9 +417,13 @@ void readFrecuencyLevels(){
 void readTemperature(){
   val = analogRead(termistor);
   temp = thermister(val);
+  currentTime = millis() - initialTime;
+  currentTime /= 1000.0; // ms to seg
+
   StaticJsonDocument<200> doc;
   JsonObject TMTJson = doc.createNestedObject("TMT");
   TMTJson["temperature"] = temp;
+  TMTJson["time"] = currentTime;
   serializeJson(doc, Serial);
   Serial.println();
 }
