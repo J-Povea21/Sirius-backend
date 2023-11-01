@@ -14,36 +14,36 @@ async function checkConnection(experiment) {
     const arduinoFound = await Port.findArduino();
 
     // If the arduino wasn't found, we return the JSON
-    if (!arduinoFound.status){
+    if (!arduinoFound.status) {
         emitResponse('checkConn', arduinoFound);
-    }else{
+    } else {
         const experimentCode = await Port.checkExperimentCode(experiment);
         emitResponse('checkConn', experimentCode);
     }
 
 }
 
-async function findArduino(){
+async function findArduino() {
     const res = await Port.findArduino();
     emitResponse('findArduino', res);
 }
 
-async function checkExperimentCode(experiment){
+async function checkExperimentCode(experiment) {
     const res = await Port.checkExperimentCode(experiment);
     emitResponse('checkExperiment', res);
 }
 
-async function startExperiment(runExperiment, experiment){
+async function startExperiment(runExperiment, experiment) {
     const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
     const res = await Port.executeOperation(operationToExecute);
 
     dataIsBeingSent = runExperiment // We'll use this to handle the different cases when the user logs out of the application
 
-    if (!res.status){
+    if (!res.status) {
         emitResponse('startExperiment', res);
-    }else if (!runExperiment){
+    } else if (!runExperiment) {
         removeListeners();
-    }else if (res.status && runExperiment){
+    } else if (res.status && runExperiment) {
         emitExperimentData(experiment);
     }
 
@@ -53,32 +53,26 @@ async function startExperiment(runExperiment, experiment){
     This function basically sends the ESC command to the Arduino. This command is used to stop the current experiment and
     put the arduino in a state where it can listen if the user wants to start another experience
  */
-async function changeExperiment(){
+function changeExperiment() {
 
-    if (!port.isExperimentChecked()) return;
+    if (Port.getPort() == null) return;
 
-    //Before we execute the ESC operation,we need to make sure that the arduino is not going to send more data
-    if (dataIsBeingSent) Port.executeOperation(Port.PORT_OPERATIONS.PAUSE);
+    //Before we execute the ESC operation,we need to make sure that the arduino is not going to send more data. With flush we remove all the possible data              that it's in the port
 
-    Port.executeOperation(Port.PORT_OPERATIONS.ESC);
-
-    // Once we executed the ESC operation, let's remove any listener from the parser and set experimentChecked to false
-    removeListeners();
-
-    Port.setExperimentChecked(false);
-
+    Port.getPort().close();
+    Port.resetAllVars();
 }
 
 
-function emitExperimentData(exp){
+function emitExperimentData(exp) {
     const dataParser = Port.getParser();
 
     dataParser.on('data', sensorData => {
-        try{
-            if(typeof sensorData !== 'string') sensorData = sensorData.toString();
+        try {
+            if (typeof sensorData !== 'string') sensorData = sensorData.toString();
 
             emitResponse(exp, sensorData);
-        }catch (e) {
+        } catch (e) {
             emitResponse(exp, {status: false, message: `Error parsing data: ${e.message}`});
         }
 
@@ -86,15 +80,15 @@ function emitExperimentData(exp){
 
 }
 
-function emitResponse(event, response){
+function emitResponse(event, response) {
     webSocket.emit(event, response);
 }
 
-function setSocket(socket){
+function setSocket(socket) {
     webSocket = socket;
 }
 
-function removeListeners(){
+function removeListeners() {
     Port.getParser().removeAllListeners();
 }
 
@@ -102,7 +96,7 @@ export {
     setSocket,
     findArduino,
     checkExperimentCode,
-    startExperiment  ,
+    startExperiment,
     changeExperiment,
     checkConnection,
 }
