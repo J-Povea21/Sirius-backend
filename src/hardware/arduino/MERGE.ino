@@ -4,9 +4,12 @@
 #include <ArduinoJson.h>
 #include <Adafruit_VL53L0X.h>
 #include <FreqCount.h>
-String experimentDetector, check = "", serialReceivedData = ""; // Checking controllers
-bool freqStatus, loopState = true, calibrationState = false;    // Status controllers
-const int numMeasurements = 120;    // Calibration measurements number
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+String experimentDetector, check = "", serialReceivedData = "";   // Checking controllers
+bool freqStatus, loopState = true, startupState = false;          // Status controllers
+const int numMeasurements = 120;                                  // Calibration measurements number
+LiquidCrystal_I2C lcd(0x27, 20, 4);                               // 20x4 LCD configuration 
 
 enum Experiment {
   NONE,
@@ -27,13 +30,9 @@ Experiment getExperiment(const String& str) {
   if (str == "TMT") return TMT;
   return NONE;
 }
-
-long map(long x, long inMin, long inMax, long outMin, long outMax){
-  return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-}
 //======================================================================================================================================
 // DELAY CONTROLLER
-const int delayMRUA = 250, delayFF = 10, delayMF = 250, delayMD = 250, delayKD = 10, delayTMT = 250;
+const int delayMRUA = 250, delayFF = 10, delayMF = 250, delayMD = 250, delayKD = 0, delayTMT = 250;
 const long intervalTone = 10;
 //======================================================================================================================================
 // MRUA
@@ -59,9 +58,9 @@ float magneticFieldReference, outputVoltage, magneticField, magneticFieldSum;
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 //======================================================================================================================================
 // METAL DETECTOR
-const int buzzPin = 12, thirteenPin = 13;
+const int buzzPin = 12;
 unsigned long previousTimeTone = 0;
-int buff = 0, frq = 0, difference = 0, sensivityMD = 2, autoBalance = 0, baseFrecuency = 0, frecuencyMD = 0, toneCount = 0;
+int baseFrecuency = 0, frecuencyMD = 0, sensivityMD = 2, difference = 0,  autoBalance = 0, toneCount = 0;
 bool AB = true;
 //======================================================================================================================================
 // KUNDT'S TUBE
@@ -94,8 +93,7 @@ void setup()
   // THERMOMETER
   pinMode(termistor, INPUT);        // Thermometer's Apin
   // GENERAL
-  Serial.begin(9600);
-  Serial.println("SIRIUS STARTED"); // Signal SIRIUS system inicialization
+  systemInitConfig();               // SIRIUS system initialization config
 }
 //======================================================================================================================================
 //======================================================================================================================================
@@ -151,28 +149,39 @@ void loop()
   switch (currentExp) {
     case MRUA:
         while (experimentDetector == "MRUA") {
+          if (startupState == false){
+            lcdShow(6, 1, "Uniform", true);
+            lcdShow(0, 2, "Rectilinear Movement", false);
+            startupState = true;
+          }
           executeOperation(readDistance, delayMRUA);
         }
         break;
     case FF:
         while (experimentDetector == "FF") {
+          if (startupState == false){
+            lcdShow(6, 1, "Freefall", true);
+            startupState = true;
+          }
           executeOperation(calculateGravityAcceleration, delayFF);
         }
         break;
     case MF:
         while (experimentDetector == "MF") {
-          if (calibrationState == false){
+          if (startupState == false){
             mmDistanceSensorCalibration();
             hallSensorCalibration();
-            calibrationState = true;
+            lcdShow(3, 1, "Magnetic Field", true);
+            startupState = true;
           }
           executeOperation(readMagneticField, delayMF);
         }
         break;
     case MD:
         while (experimentDetector == "MD") {
-          if (freqStatus == false){
+          if (startupState == false){
             setupMD();
+            lcdShow(3, 1, "Metal Detector", true);
             freqStatus = true;      
           }
           executeOperation(detectMetal, delayMD);
@@ -180,15 +189,20 @@ void loop()
         break;
     case KD:
         while (experimentDetector == "KD") {
-          if (calibrationState == false){
+          if (startupState == false){
             soundSensorCalibration();
-            calibrationState = true;      
+            lcdShow(4, 1, "Kundts Tube", true);
+            startupState = true;      
           }
           executeOperation(readFrecuencyLevels, delayKD);
         }
         break;
     case TMT:
         while (experimentDetector == "TMT") {
+          if (startupState == false){
+            lcdShow(5, 1, "Termometer", true);
+            startupState = true;      
+          }
           executeOperation(readTemperature, delayTMT);
         }
         break;
@@ -205,7 +219,6 @@ void readDistance(){
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-
   duration = pulseIn(echoPin, HIGH);
   distance = (duration * 0.0343) / 2;
 
@@ -219,7 +232,6 @@ void readDistance(){
   currentTime /= 1000.0; // ms to seg
   speed = (distance - lastDistance) / (currentTime - lastMRUATime); // Speed in cm/s
   aceleration = (speed - lastSpeed) / (currentTime - lastMRUATime); // Acceleration in cm/s^2
-
   lastTime = currentTime;
   lastSpeed = speed;
   if(distance != lastDistance){
@@ -456,20 +468,44 @@ void executeOperation(void (*experimentFn)(), int delayTime){
             lastPrintState = false;
             break;
           } else if (serialReceivedData == "ESC"){
-            calibrationState = false;
+            startupState = false;
             lastPrintState = false;
             experimentDetector = "null";
             loopState = true;
+            lcdStartupConfig();
             break;
           }
         }    
       }
     } else if (serialReceivedData == "ESC"){
-      calibrationState = false;
+      startupState = false;
       experimentDetector = "null";
       loopState = true;
+      lcdStartupConfig();
     } 
   }
+}
+
+void systemInitConfig(){
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  Serial.println("SIRIUS STARTED");           // Software signal SIRIUS system inicialization
+  lcdShow(3, 1, "SIRIUS STARTED", true);      // LCD signal SIRIUS system inicialization
+  delay(4000);
+  lcdStartupConfig();
+}
+
+void lcdStartupConfig(){
+  lcdShow(6, 0, "Waiting", true);
+  lcdShow(9, 1, "for", false);
+  lcdShow(5, 2, "Experience", false);
+}
+
+void lcdShow(int x, int y, String text, bool clearState){
+  if (clearState){ lcd.clear(); }
+  lcd.setCursor(x, y);
+  lcd.print(text);  
 }
 //======================================================================================================================================
 //======================================================================================================================================
