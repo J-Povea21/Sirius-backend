@@ -4,12 +4,12 @@
 #include <ArduinoJson.h>
 #include <Adafruit_VL53L0X.h>
 #include <FreqCount.h>
-#include <EEPROM.h>
-String experimentDetector;
-String check = "";
-String serialReceivedData = "";
-bool loopState = true;
-bool freqStatus;
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+String experimentDetector, check = "", serialReceivedData = "";   // Checking controllers
+bool freqStatus, loopState = true, startupState = false;          // Status controllers
+const int numMeasurements = 120;                                  // Calibration measurements number
+LiquidCrystal_I2C lcd(0x27, 20, 4);                               // 20x4 LCD configuration
 
 enum Experiment {
   NONE,
@@ -22,76 +22,56 @@ enum Experiment {
 };
 
 Experiment getExperiment(const String& str) {
-    if (str == "MRUA") return MRUA;
-    if (str == "FF") return FF;
-    if (str == "MF") return MF;
-    if (str == "MD") return MD;
-    if (str == "KD") return KD;
-    if (str == "TMT") return TMT;
-    return NONE;
+  if (str == "MRUA") return MRUA;
+  if (str == "FF") return FF;
+  if (str == "MF") return MF;
+  if (str == "MD") return MD;
+  if (str == "KD") return KD;
+  if (str == "TMT") return TMT;
+  return NONE;
 }
 //======================================================================================================================================
+// DELAY CONTROLLER
+const int delayMRUA = 250, delayFF = 10, delayMF = 250, delayMD = 250, delayKD = 0, delayTMT = 250;
+const long intervalTone = 10;
+//======================================================================================================================================
 // MRUA
-const int trigPin = 9;
-const int echoPin = 10;
-unsigned long initialTime;
-unsigned long currentTime;
-unsigned long lastInitCalledTime = 0;
-unsigned long lastPrintTime = 0;
-long duration;
-int distance;
-int lastDistance = 0;
+const int trigPin = 10, echoPin = 11;
+unsigned long initialTime, duration, lastInitCalledTime = 0, lastPrintTime = 0;
+double currentTime, distance, lastDistance = 0.0, lastMRUATime = 0.0, lastSpeed = 0.0, aceleration = 0.0;
+float distanceMF;
 bool lastPrintState = true;
 //======================================================================================================================================
 // FREEFALL
-const int bottomSensor = 8;            // Bottom sensor
-const int topSensor = 9;               // Top sensor
-const float distanceBetween = 0.60;    // Distance between both sensors in meters
-const float localGravity = 9.78;
-float calculatedGravity;
-unsigned long bottomSensorCounter, currentTimeFF, timeInterval;
+const int bottomSensor = 8, topSensor = 9;
+const float distanceBetween = 0.50, localGravity = 9.78;
+double speed, error, calculatedGravity;
+unsigned long topSensorCounter, currentTimeFF, timeInterval;
+int attemptCounter;
 byte lastBottomSensorState, lastTopSensorState;
-float speed;
-float error;
 //======================================================================================================================================
 // MAGNETIC FIELD
-const int sensorPin = A3;
-const float sensitivity = 0.0014;  // Sensor sensitivity in volts/gauss
-const float offsetVoltage = 2.5;  // Offset voltage in volts
-float magneticFieldReference;
-bool calibrationState = false;
-int rawValue;
-float outputVoltage;
-float magneticField;
-int frecuency = 400;
-float magneticFieldSum;
-const int measurements = 10;
-float buzzTime;
+const int sensorPin = A0;
+const float sensitivity = 0.0014, offsetVoltage = 2.5;
+int rawValue, frecuency = 400;
+float magneticFieldReference, outputVoltage, magneticField, magneticFieldSum;
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 //======================================================================================================================================
 // METAL DETECTOR
 const int buzzPin = 12;
-const int thirteenPin = 13;
-int buff = 0;
-int frq = 0;
-int difference = 0;
-int sens = 2; // sensibilidad
-int autoBalance = 0;
+unsigned long previousTimeTone = 0;
+int baseFrecuency = 0, frecuencyMD = 0, sensivityMD = 2, difference = 0,  autoBalance = 0, toneCount = 0;
 bool AB = true;
 //======================================================================================================================================
 // KUNDT'S TUBE
-char displayString[17] = "";
-double frequency  = 123.456;          
-double uncalfreq = 123.456;
-float cal = 1.00000f;                 
-float readcal = 0.000f;               
-unsigned long count = 0;              
-int divisor = 256;
+const int soundSensor = A0;
+const unsigned long interval = 1000000;
+int currentValue, nodeValue = 0, lastValue = 0, frecuencySum = 0;
+unsigned long currentTimeKD = micros(), frecuencyKD = 0, lastTime = 0;
 //======================================================================================================================================
-// TERMOMETER
-int TERMISTOR = A0;
-int val;
-int temp;
+// THERMOMETER
+const int termistor = A0;
+int val, temp;
 //======================================================================================================================================
 //======================================================================================================================================
 void setup()
@@ -100,22 +80,20 @@ void setup()
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   // FREE FALL
-  pinMode(bottomSensor, INPUT);
-  pinMode(topSensor, INPUT);
-  PCICR |= (1 << PCIE0);    // Enable the PCMSK0 scan
-  PCMSK0 |= (1 << PCINT0);  // Set pin D8 to trigger a state change
-  PCMSK0 |= (1 << PCINT1);  // Set pin D9 to trigger a state change
+  pinMode(bottomSensor, INPUT);     // Fotorresistor sensor Dpin
+  pinMode(topSensor, INPUT);        // Fotorresistor sensor Dpin
+  PCICR |= (1 << PCIE0);            // Enable the PCMSK0 scan
+  PCMSK0 |= (1 << PCINT0);          // Set pin 8 to trigger a state change
+  PCMSK0 |= (1 << PCINT1);          // Set pin 9 to trigger a state change
   // MAGNETIC FIELD: Nothing
   // METAL DETECTOR
-  pinMode (buzzPin, OUTPUT);
-  pinMode (thirteenPin, OUTPUT);
+  pinMode (buzzPin, OUTPUT);        // Buzzer Dpin
   // KUNDT'S TUBE
-  EEint();
-  // TERMOMETER
-  pinMode(TERMISTOR, INPUT);
+  lastTime = micros();              // Inicial relative time
+  // THERMOMETER
+  pinMode(termistor, INPUT);        // Thermometer's Apin
   // GENERAL
-  Serial.begin(9600);
-  Serial.println("SIRIUS STARTED");
+  systemInitConfig();               // SIRIUS system initialization config
 }
 //======================================================================================================================================
 //======================================================================================================================================
@@ -137,6 +115,7 @@ void loop()
             Serial.println("FF");
             loopState = false;
             experimentDetector = "FF";
+            attemptCounter = 0;
             break;
         case MF:
             Serial.println("MF");
@@ -167,103 +146,137 @@ void loop()
   }
   // The specific experience will be shown depending the check
   Experiment currentExp = getExperiment(experimentDetector);
-    switch (currentExp) {
-      case MRUA:
-          while (experimentDetector == "MRUA") {
-            executeOperation(readDistance);
+  switch (currentExp) {
+    case MRUA:
+        while (experimentDetector == "MRUA") {
+          if (startupState == false){
+            lcdShow(6, 1, "Uniform", true);
+            lcdShow(0, 2, "Rectilinear Movement", false);
+            startupState = true;
           }
-          break;
-      case FF:
-          while (experimentDetector == "FF") {
-            executeOperation(calculateGravityAcceleration);
+          executeOperation(readDistance, delayMRUA);
+        }
+        break;
+    case FF:
+        while (experimentDetector == "FF") {
+          if (startupState == false){
+            lcdShow(6, 1, "Freefall", true);
+            startupState = true;
           }
-          break;
-      case MF:
-          while (experimentDetector == "MF") {
-            if (calibrationState == false){
-              mmDistanceSensorCalibration();
-              hallSensorCalibration();
-              calibrationState = true;
-            }
-            executeOperation(readMagneticField);
+          executeOperation(calculateGravityAcceleration, delayFF);
+        }
+        break;
+    case MF:
+        while (experimentDetector == "MF") {
+          if (startupState == false){
+            mmDistanceSensorCalibration();
+            hallSensorCalibration();
+            lcdShow(3, 1, "Magnetic Field", true);
+            startupState = true;
           }
-          break;
-      case MD:
-          while (experimentDetector == "MD") {
-            if (freqStatus == false){
-              FreqCount.begin(200);
-              frq=FreqCount.read();
-              buff=frq;
-              freqStatus = true;      
-            }
-            executeOperation(detectMetal);
+          executeOperation(readMagneticField, delayMF);
+        }
+        break;
+    case MD:
+        while (experimentDetector == "MD") {
+          if (startupState == false){
+            setupMD();
+            lcdShow(3, 1, "Metal Detector", true);
+            freqStatus = true;
           }
-          break;
-      case KD:
-          while (experimentDetector == "KD") {
-            if (freqStatus == false){
-              FreqCount.begin(1000);
-              freqStatus = true;      
-            }
-            executeOperation(readFrecuencyLevels);
+          executeOperation(detectMetal, delayMD);
+        }
+        break;
+    case KD:
+        while (experimentDetector == "KD") {
+          if (startupState == false){
+            soundSensorCalibration();
+            lcdShow(4, 1, "Kundts Tube", true);
+            startupState = true;
           }
-          break;
-      case TMT:
-          while (experimentDetector == "TMT") {
-            executeOperation(readTemperature);
+          executeOperation(readFrecuencyLevels, delayKD);
+        }
+        break;
+    case TMT:
+        while (experimentDetector == "TMT") {
+          if (startupState == false){
+            lcdShow(5, 1, "Termometer", true);
+            startupState = true;
           }
-          break;
-      default:
-          break;
+          executeOperation(readTemperature, delayTMT);
+        }
+        break;
+    default:
+        break;
   }
 }
 //======================================================================================================================================
 //======================================================================================================================================
 // MRUA
-void readDistance()
-{
+void readDistance(){
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-
   duration = pulseIn(echoPin, HIGH);
-  distance = (duration * 0.034) / 2;
-  if (distance < 2 || distance > 60){
-    distance = 0;
+  distance = (duration * 0.0343) / 2;
+
+  if (distance > 65.0 || distance < 2.0){
+    distance = 0.0;
+  } else if (abs(distance - lastDistance) < 0.30){
+    distance = lastDistance;
   }
+
+  currentTime = millis() - initialTime;
+  currentTime /= 1000.0; // ms to seg
+  speed = (distance - lastDistance) / (currentTime - lastMRUATime); // Speed in cm/s
+  aceleration = (speed - lastSpeed) / (currentTime - lastMRUATime); // Acceleration in cm/s^2
+  lastTime = currentTime;
+  lastSpeed = speed;
   if(distance != lastDistance){
     lastDistance = distance;
   }
-  currentTime = millis() - initialTime;
-  
+
   StaticJsonDocument<200> doc;
   JsonObject ultrasonic = doc.createNestedObject("MRUA");
   ultrasonic["time"] = currentTime;
   ultrasonic["distance"] = distance;
+  ultrasonic["speed"] = speed;
+  ultrasonic["aceleration"] = aceleration;
   serializeJson(doc, Serial);
   Serial.println();
 }
 //======================================================================================================================================
 // FREEFALL
-ISR(PCINT0_vect) {
-  // Capture the current counter value in microseconds using the micros function
+ISR(PCINT0_vect){
+  // Save the current counter value
   currentTimeFF = micros();
   
-  if(PINB & B00000001) {  // Check if pin 8 is HIGH
+  if(PINB & B00000001) {  // Check if D8 is HIGH
     if(lastBottomSensorState == 0) {                         
-      lastBottomSensorState = 1;                            
-      bottomSensorCounter = currentTimeFF;                      
+      lastBottomSensorState = 1;
+      timeInterval = currentTimeFF - topSensorCounter;
+      attemptCounter += 1;
+
+      calculatedGravity = 2 * (0.5 - 0.938 * (timeInterval / 1E6)) / ((timeInterval / 1E6) * (timeInterval / 1E6));
+      error = (abs(calculatedGravity - localGravity) / localGravity) * 100.0;
+      StaticJsonDocument<200> doc;
+      JsonObject gravity = doc.createNestedObject("FF");
+      gravity["acceleration"] = calculatedGravity;
+      gravity["error"] = error;
+      gravity["attempt"] = attemptCounter;
+      serializeJson(doc, Serial);
+      Serial.println();
     }
   } else if(lastBottomSensorState == 1) {                      
     lastBottomSensorState = 0;                              
   }
 
-  if(PINB & B00000010) {   // Check if pin 9 is HIGH                                              
+  if(PINB & B00000010) {   // Check if D9 is HIGH
     if(lastTopSensorState == 0) {                                               
       lastTopSensorState = 1;                                                   
-      timeInterval = currentTimeFF - bottomSensorCounter;                                    
+      topSensorCounter = currentTimeFF;
     }
   } else if(lastTopSensorState == 1) {                                           
     lastTopSensorState = 0;                                                     
@@ -271,42 +284,27 @@ ISR(PCINT0_vect) {
 }
 
 void calculateGravityAcceleration() {
-  speed = distanceBetween / (timeInterval / 1E6);
-  calculatedGravity = (speed * speed) / distanceBetween;
-  error = (abs(calculatedGravity - localGravity) / localGravity) * 100.0;
-
-  StaticJsonDocument<200> doc;
-  JsonObject gravity = doc.createNestedObject("FF");
-  gravity["acceleration"] = calculatedGravity;
-  gravity["error"] = error;
-  serializeJson(doc, Serial);
-  Serial.println();
+  asm volatile ("nop"); // Thanks to ISR function, the main FF function do not need a operation
 }
 //======================================================================================================================================
 // MAGNETIC FIELD
 void readMagneticField(){
   rawValue = analogRead(sensorPin);
   outputVoltage = rawValue * (5.0 / 1023.0) - offsetVoltage;
-  buzzTime = (100000*(1/outputVoltage));
   magneticField = outputVoltage / sensitivity - magneticFieldReference;
-  distance = 0;
-  magneticField = round(magneticField * 100.0) / 100.0;
+  magneticField = abs(round(magneticField * 100.0) / 100.0);
 
   distance = readMmDistance();
-  distance = 0;
+  currentTime = millis() - initialTime;
+  currentTime /= 1000.0;
 
   StaticJsonDocument<200> doc;
   JsonObject magneticJson = doc.createNestedObject("MF");
   magneticJson["field"] = magneticField;
   magneticJson["distance"] = distance;
+  magneticJson["time"] = currentTime;
   serializeJson(doc, Serial);
   Serial.println();
-  
-  if (magneticField > 2){
-    digitalWrite(buzzPin, HIGH);         
-    delay(buzzTime);
-    digitalWrite(buzzPin, LOW);
-  }
 }
 
 double readMmDistance(){
@@ -315,8 +313,7 @@ double readMmDistance(){
 
   if (measure.RangeStatus != 4){  // Phase failures have incorrect data
     distance = measure.RangeMilliMeter;
-  } 
-  else {
+  } else {
     distance = 0;
   }
   return distance;
@@ -331,112 +328,119 @@ void mmDistanceSensorCalibration(){
 void hallSensorCalibration(){
   // Takes several initial measurements and calculates the average to use as a reference
   magneticFieldSum = 0;
-  for(int i = 0; i < measurements; i++) {
+  for(int i=0; i<numMeasurements; i++) {
     int rawValue = analogRead(sensorPin);
     float voltage = rawValue * (5.0 / 1023.0) - offsetVoltage;
     magneticFieldSum += voltage / sensitivity;
-    delay(100);
+    delay(10); // Small pause between readings
   }
-  magneticFieldReference = magneticFieldSum / measurements;
+  magneticFieldReference = magneticFieldSum / numMeasurements;
 }
 //======================================================================================================================================
 // METAL DETECTOR
+void setupMD(){
+  FreqCount.begin(200);
+  frecuencyMD = FreqCount.read();
+  baseFrecuency = frecuencyMD;
+
+  for(int i=0; i<5; i++){
+    generateTone(buzzPin, 2, 10);
+    delay(20);
+    frecuencyMD = FreqCount.read();
+    if(frecuencyMD != baseFrecuency){
+      baseFrecuency = frecuencyMD;
+      i = 0;
+    }
+  }
+  generateTone(buzzPin, 1, 20);
+}
+
 void detectMetal(){
-  AB=true;
-  frq = FreqCount.read();
-  difference = buff-frq;
-
-  if(difference>sens){               // Ferrous metal
-    for(int i=0; i<10; i++){  // Generate tone
-      digitalWrite(buzzPin,HIGH);
-      delay(2);
-      digitalWrite(buzzPin,LOW);
-      delay(2);
-    }
+  frecuencyMD = FreqCount.read();
+  difference = baseFrecuency - frecuencyMD;
+  // Ferrous metal
+  if(difference > sensivityMD){
+    generateTone(buzzPin, 2, 10);
     delay(40-(constrain(difference*5,10,40)));
-    AB=false;   // Reset Autobalance
     StaticJsonDocument<200> doc;
     JsonObject MDJson = doc.createNestedObject("MD");
-    MDJson["isFerrous"] = "YES";
+    MDJson["isFerrous"] = "1";
     serializeJson(doc, Serial);
+    Serial.println();
   }
-  
-  else if(difference<-sens){        // Non-Ferrous metal
-    difference =- difference;
-    for(int i=0; i<20; i++){    // Generate tone
-      digitalWrite(buzzPin, HIGH);
-      delay(1);
-      digitalWrite(buzzPin, LOW);
-      delay(1);
-    }
-    delay(40-(constrain(difference*5,10,40))); 
-    AB = false;   // Reset Autobalance
+  // Non-Ferrous metal
+  else if(difference <- sensivityMD){
+    difference = -difference;
+    generateTone(buzzPin, 1, 20);
+    delay(40-(constrain(difference * 5, 10, 40)));
     StaticJsonDocument<200> doc;
     JsonObject MDJson = doc.createNestedObject("MD");
-    MDJson["isFerrous"] = "NO";
+    MDJson["isFerrous"] = "0";
     serializeJson(doc, Serial);
+    Serial.println();
   }
+  frecuencyMD = 0;
+}
 
-  if (true){                     // Autobalance
-    digitalWrite(thirteenPin,HIGH);
-    if (AB && difference != 0){   
-      if (autoBalance>1000){
-        autoBalance = 0; 
-        buff = frq;
-      }
-      autoBalance++;
-    }
-    else autoBalance = 0;
-    delay(1);
+void generateTone(int pin, int duration, int repetitions){
+  for(int i=0; i<repetitions; i++) {
+    digitalWrite(pin, HIGH);
+    delay(duration);
+    digitalWrite(pin, LOW);
+    delay(duration);
   }
 }
 //======================================================================================================================================
 // KUNDT'S TUBE
-void readFrecuencyLevels(){
-  if (FreqCount.available()){
-      count = FreqCount.read();
-      count = count * divisor;
-      uncalfreq = count / 1000000.0;
-      frequency = uncalfreq * cal;
+void soundSensorCalibration(){
+  // Takes several initial measurements and calculates the average to use as a reference
+  for(int i=0; i<numMeasurements; i++) {
+    frecuencySum += analogRead(soundSensor);
+    delay(10); // Small pause between readings
   }
-  updateFrecuencyValues();
+  nodeValue = frecuencySum / numMeasurements; // Average value
 }
 
-void updateFrecuencyValues(){
-  dtostrf(frequency, 7, 3, displayString);
-  StaticJsonDocument<200> doc;
-  JsonObject frecuencyJson = doc.createNestedObject("KD");
-  frecuencyJson["frecuency"] = displayString;
-  serializeJson(doc, Serial);
-  Serial.println();
-}
+void readFrecuencyLevels(){
+  currentValue = analogRead(soundSensor);
+  currentTimeKD = micros();
 
-void EEint(){
-  byte value = EEPROM.read(0);             
-  if (value == 0x55) {                     
-     EEPROM.get(1, readcal);               
-     cal = readcal;                        
-     delay(2000);
-     }
-  else {                                   // initialize EEPROM at first time use
-    EEPROM.write(0, 0x55);                 // write flag
-    EEPROM.put(1, cal);                     // write initial cal value
-    delay(2000);      
+  // Detect a node crossing
+  if((currentValue < nodeValue && lastValue >= nodeValue) || (lastValue < nodeValue && currentValue >= nodeValue)) {
+    frecuencyKD++;
+  }
+  lastValue = currentValue;
+
+  if(currentTimeKD - lastTime >= interval) {
+    frecuencyKD /= 2; // Divide by 2 since two node crossings are detected
+    StaticJsonDocument<200> doc;
+    JsonObject frecuencyJson = doc.createNestedObject("KD");
+    frecuencyJson["frecuency"] = frecuencyKD;
+    frecuencyJson["amplitude"] = currentValue;
+    serializeJson(doc, Serial);
+    Serial.println();
+
+    frecuencyKD = 0;
+    lastTime = currentTimeKD;
   }
 }
 //======================================================================================================================================
-// TERMOMETER
+// THERMOMETER
 void readTemperature(){
-  val = analogRead(TERMISTOR);
-  temp = Thermister(val);
+  val = analogRead(termistor);
+  temp = thermister(val);
+  currentTime = millis() - initialTime;
+  currentTime /= 1000.0; // ms to seg
+
   StaticJsonDocument<200> doc;
   JsonObject TMTJson = doc.createNestedObject("TMT");
   TMTJson["temperature"] = temp;
+  TMTJson["time"] = currentTime;
   serializeJson(doc, Serial);
   Serial.println();
 }
 
-double Thermister(int RawADC) {
+double thermister(int RawADC) {
   double Temp;
   Temp = log(((10240000/RawADC) - 10000));
   Temp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * Temp * Temp ))* Temp );
@@ -445,7 +449,7 @@ double Thermister(int RawADC) {
 }
 //======================================================================================================================================
 // GENERAL
-void executeOperation(void (*experimentFn)()){
+void executeOperation(void (*experimentFn)(), int delayTime){
   if (Serial.available() > 0) {
     serialReceivedData = Serial.readStringUntil('\n');
     serialReceivedData.trim();
@@ -453,7 +457,7 @@ void executeOperation(void (*experimentFn)()){
       lastPrintState = true;
       initialTime = millis();      
       while (lastPrintState == true){ 
-        if ((millis() - lastPrintTime) > 250) {
+        if ((millis() - lastPrintTime) > delayTime) {
           experimentFn();
           lastPrintTime = millis();
         }
@@ -463,22 +467,45 @@ void executeOperation(void (*experimentFn)()){
           if (serialReceivedData == "PAUSE"){
             lastPrintState = false;
             break;
-          } 
-          else if (serialReceivedData == "ESC"){
+          } else if (serialReceivedData == "ESC"){
+            startupState = false;
             lastPrintState = false;
             experimentDetector = "null";
             loopState = true;
+            lcdStartupConfig();
             break;
           }
         }    
       }
-    }
-    else if (serialReceivedData == "ESC"){
-      freqStatus = false;
+    } else if (serialReceivedData == "ESC"){
+      startupState = false;
       experimentDetector = "null";
       loopState = true;
+      lcdStartupConfig();
     } 
   }
+}
+
+void systemInitConfig(){
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  Serial.println("SIRIUS STARTED");           // Software signal SIRIUS system inicialization
+  lcdShow(3, 1, "SIRIUS STARTED", true);      // LCD signal SIRIUS system inicialization
+  delay(4000);
+  lcdStartupConfig();
+}
+
+void lcdStartupConfig(){
+  lcdShow(6, 0, "Waiting", true);
+  lcdShow(9, 1, "for", false);
+  lcdShow(5, 2, "Experience", false);
+}
+
+void lcdShow(int x, int y, String text, bool clearState){
+  if (clearState){ lcd.clear(); }
+  lcd.setCursor(x, y);
+  lcd.print(text);
 }
 //======================================================================================================================================
 //======================================================================================================================================

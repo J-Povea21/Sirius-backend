@@ -7,6 +7,7 @@ import * as Port from "../hardware/port-manager.mjs";
 
 let webSocket = null;
 let dataIsBeingSent = false;
+let experimentToRun = null;
 
 // This method combines the findArduino and the checkExperiment functions
 // to make easier the process of starting an experiment in the frontend
@@ -37,14 +38,15 @@ async function startExperiment(runExperiment, experiment) {
     const operationToExecute = (runExperiment) ? Port.PORT_OPERATIONS.INIT : Port.PORT_OPERATIONS.PAUSE;
     const res = await Port.executeOperation(operationToExecute);
 
-    dataIsBeingSent = runExperiment // We'll use this to handle the different cases when the user logs out of the application
+    dataIsBeingSent = runExperiment; // We'll use this to handle the different cases when the user logs out of the application
+    experimentToRun = experiment;
 
     if (!res.status) {
         emitResponse('startExperiment', res);
     } else if (!runExperiment) {
-        removeListeners();
+        removeListener();
     } else if (res.status && runExperiment) {
-        emitExperimentData(experiment);
+        emitExperimentData();
     }
 
 }
@@ -59,24 +61,18 @@ function changeExperiment() {
 
     //Before we execute the ESC operation,we need to make sure that the arduino is not going to send more data. With flush we remove all the possible data              that it's in the port
 
-    Port.getPort().close();
-    Port.resetAllVars();
+    if (dataIsBeingSent) Port.executeOperation(Port.PORT_OPERATIONS.PAUSE);
+
+    Port.executeOperation(Port.PORT_OPERATIONS.ESC);
+    Port.setExperimentChecked(false);
+
 }
 
 
-function emitExperimentData(exp) {
+function emitExperimentData() {
     const dataParser = Port.getParser();
 
-    dataParser.on('data', sensorData => {
-        try {
-            if (typeof sensorData !== 'string') sensorData = sensorData.toString();
-
-            emitResponse(exp, sensorData);
-        } catch (e) {
-            emitResponse(exp, {status: false, message: `Error parsing data: ${e.message}`});
-        }
-
-    });
+    dataParser.on('data', handleData);
 
 }
 
@@ -88,8 +84,18 @@ function setSocket(socket) {
     webSocket = socket;
 }
 
-function removeListeners() {
-    Port.getParser().removeAllListeners();
+function removeListener() {
+    Port.getParser().removeListener('data', handleData);
+}
+
+function handleData(sensorData){
+    try {
+        if (typeof sensorData !== 'string') sensorData = sensorData.toString();
+
+        emitResponse(experimentToRun, sensorData);
+    } catch (e) {
+        emitResponse(experimentToRun, {status: false, message: `Error parsing data: ${e.message}`});
+    }
 }
 
 export {

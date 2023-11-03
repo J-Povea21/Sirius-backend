@@ -109,7 +109,10 @@ function openPort() {
 
 function waitResponse() {
     return new Promise((resolve, reject) => {
-        dataParser.once('data', data => resolve(data));
+        dataParser.once('data', data =>{
+            console.log(data);
+            resolve(data)
+        });
 
         port.once('error', err => reject(err));
     });
@@ -121,10 +124,6 @@ function getPort() {
 
 function getParser() {
     return dataParser;
-}
-
-function isExperimentChecked() {
-    return experimentChecked;
 }
 
 function setExperimentChecked(value) {
@@ -147,7 +146,5 @@ export {
     executeOperation,
     getParser,
     getPort,
-    isExperimentChecked,
     setExperimentChecked,
-    resetAllVars
 };
