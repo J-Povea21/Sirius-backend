@@ -4,10 +4,10 @@
 
 import * as EmitEvents from "./emit-events.mjs";
 
-export function setConnection(socket, app){
+export function setConnection(socket, app) {
 
     EmitEvents.setSocket(socket);
-    socket.on('disconnect', () => app.log.info('Socket disconnected'));
+    socket.on('disconnect', () => EmitEvents.changeExperiment());
 
     socket.on('findArduino', () => EmitEvents.findArduino());
     socket.on('checkExperiment', experiment => EmitEvents.checkExperimentCode(experiment));

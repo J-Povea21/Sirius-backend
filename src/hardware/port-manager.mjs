@@ -24,12 +24,12 @@ async function findArduino() {
         const portList = await SerialPort.list();
         const devicesConnected = portList.length > 0;
 
-        if (!devicesConnected){
+        if (!devicesConnected) {
             // If no devices are detected, we reset all the variables
             resetAllVars();
             return {status: false, message: 'No devices found. Please check the connection'};
 
-        }else if (portOpen){
+        } else if (portOpen) {
             return {status: true, message: 'Arduino detected'};
         }
 
@@ -37,8 +37,8 @@ async function findArduino() {
         portPath = portList.find(port => {
             if (!port.manufacturer)
                 return false;
-             else
-                 return port.manufacturer.includes('Arduino');
+            else
+                return port.manufacturer.includes('Arduino');
         });
 
         portPath = (portPath) ? portPath.path : '';
@@ -50,7 +50,7 @@ async function findArduino() {
 
         return {status: portOpen, message: 'Arduino detected'};
 
-    }catch (e) {
+    } catch (e) {
         return {status: false, message: `Error finding arduino: ${e.message}`};
     }
 
@@ -59,21 +59,21 @@ async function findArduino() {
 
 function executeOperation(operation) {
 
-    if( !(operation in PORT_OPERATIONS) ) return {status: false, message: 'Invalid operation'};
+    if (!(operation in PORT_OPERATIONS)) return {status: false, message: 'Invalid operation'};
     if (!port) return {status: false, message: 'No arduino detected. Please check the connection'};
 
-    try{
+    try {
         port.write(`${operation}\n`, err => {
             if (err) return {status: false, message: `Communication error: ${err.message}`};
         });
         return {status: true, message: 'Operation executed'};
-    }catch (e){
+    } catch (e) {
         return {status: false, message: `Error executing operation: ${e.message}`};
     }
 
 }
 
-async function checkExperimentCode(experiment){
+async function checkExperimentCode(experiment) {
 
     if (!port) return {status: false, message: 'No arduino detected.The experiment cant be checked'};
 
@@ -84,7 +84,7 @@ async function checkExperimentCode(experiment){
     });
 
     const status = await waitResponse() == experiment // If the response is the same as the given experiment, the code is correct
-    const message = (status)? 'OK' : 'The code doesn\'t match the experiment';
+    const message = (status) ? 'OK' : 'The code doesn\'t match the experiment';
 
     if (status) experimentChecked = true;
 
@@ -92,7 +92,7 @@ async function checkExperimentCode(experiment){
 }
 
 
-function openPort(){
+function openPort() {
 
     return new Promise((resolve, reject) => {
 
@@ -101,30 +101,37 @@ function openPort(){
 
         dataParser.once('data', () => resolve(true));
 
-        port.once('error', (err) => reject(err) );
+        port.once('error', (err) => reject(err));
 
     });
 
 }
 
-function waitResponse(){
+function waitResponse() {
     return new Promise((resolve, reject) => {
-        dataParser.once('data', data => resolve(data));
+        dataParser.once('data', data =>{
+            console.log(data);
+            resolve(data)
+        });
 
         port.once('error', err => reject(err));
     });
+}
+
+function getPort() {
+    return port;
 }
 
 function getParser() {
     return dataParser;
 }
 
-function setExperimentChecked(value){
+function setExperimentChecked(value) {
     experimentChecked = value;
 }
 
 
-function resetAllVars(){
+function resetAllVars() {
     portOpen = false;
     portPath = '';
     port = null;
@@ -138,5 +145,6 @@ export {
     PORT_OPERATIONS,
     executeOperation,
     getParser,
+    getPort,
     setExperimentChecked,
 };
