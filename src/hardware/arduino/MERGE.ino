@@ -9,7 +9,7 @@
 String experimentDetector, check = "", serialReceivedData = "";   // Checking controllers
 bool freqStatus, loopState = true, startupState = false;          // Status controllers
 const int numMeasurements = 120;                                  // Calibration measurements number
-LiquidCrystal_I2C lcd(0x27, 20, 4);                               // 20x4 LCD configuration 
+LiquidCrystal_I2C lcd(0x27, 20, 4);                               // 20x4 LCD configuration
 
 enum Experiment {
   NONE,
@@ -43,7 +43,7 @@ float distanceMF;
 bool lastPrintState = true;
 //======================================================================================================================================
 // FREEFALL
-const int bottomSensor = 8, topSensor = 9;         
+const int bottomSensor = 8, topSensor = 9;
 const float distanceBetween = 0.50, localGravity = 9.78;
 double speed, error, calculatedGravity;
 unsigned long topSensorCounter, currentTimeFF, timeInterval;
@@ -66,7 +66,7 @@ bool AB = true;
 // KUNDT'S TUBE
 const int soundSensor = A0;
 const unsigned long interval = 1000000;
-int currentValue, nodeValue = 0, lastValue = 0, frecuencySum = 0;           
+int currentValue, nodeValue = 0, lastValue = 0, frecuencySum = 0;
 unsigned long currentTimeKD = micros(), frecuencyKD = 0, lastTime = 0;
 //======================================================================================================================================
 // THERMOMETER
@@ -80,8 +80,8 @@ void setup()
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   // FREE FALL
-  pinMode(bottomSensor, INPUT);     // Fotorresistor sensor Dpin 
-  pinMode(topSensor, INPUT);        // Fotorresistor sensor Dpin 
+  pinMode(bottomSensor, INPUT);     // Fotorresistor sensor Dpin
+  pinMode(topSensor, INPUT);        // Fotorresistor sensor Dpin
   PCICR |= (1 << PCIE0);            // Enable the PCMSK0 scan
   PCMSK0 |= (1 << PCINT0);          // Set pin 8 to trigger a state change
   PCMSK0 |= (1 << PCINT1);          // Set pin 9 to trigger a state change
@@ -182,7 +182,7 @@ void loop()
           if (startupState == false){
             setupMD();
             lcdShow(3, 1, "Metal Detector", true);
-            freqStatus = true;      
+            freqStatus = true;
           }
           executeOperation(detectMetal, delayMD);
         }
@@ -192,7 +192,7 @@ void loop()
           if (startupState == false){
             soundSensorCalibration();
             lcdShow(4, 1, "Kundts Tube", true);
-            startupState = true;      
+            startupState = true;
           }
           executeOperation(readFrecuencyLevels, delayKD);
         }
@@ -201,7 +201,7 @@ void loop()
         while (experimentDetector == "TMT") {
           if (startupState == false){
             lcdShow(5, 1, "Termometer", true);
-            startupState = true;      
+            startupState = true;
           }
           executeOperation(readTemperature, delayTMT);
         }
@@ -267,16 +267,16 @@ ISR(PCINT0_vect){
       gravity["error"] = error;
       gravity["attempt"] = attemptCounter;
       serializeJson(doc, Serial);
-      Serial.println();                                                    
+      Serial.println();
     }
   } else if(lastBottomSensorState == 1) {                      
     lastBottomSensorState = 0;                              
   }
 
-  if(PINB & B00000010) {   // Check if D9 is HIGH                                             
+  if(PINB & B00000010) {   // Check if D9 is HIGH
     if(lastTopSensorState == 0) {                                               
       lastTopSensorState = 1;                                                   
-      topSensorCounter = currentTimeFF;               
+      topSensorCounter = currentTimeFF;
     }
   } else if(lastTopSensorState == 1) {                                           
     lastTopSensorState = 0;                                                     
@@ -284,7 +284,7 @@ ISR(PCINT0_vect){
 }
 
 void calculateGravityAcceleration() {
-  asm volatile ("nop"); // Thanks to ISR function, the main FF function do not need a operation 
+  asm volatile ("nop"); // Thanks to ISR function, the main FF function do not need a operation
 }
 //======================================================================================================================================
 // MAGNETIC FIELD
@@ -347,7 +347,7 @@ void setupMD(){
     generateTone(buzzPin, 2, 10);
     delay(20);
     frecuencyMD = FreqCount.read();
-    if(frecuencyMD != baseFrecuency){ 
+    if(frecuencyMD != baseFrecuency){
       baseFrecuency = frecuencyMD;
       i = 0;
     }
@@ -369,7 +369,7 @@ void detectMetal(){
     Serial.println();
   }
   // Non-Ferrous metal
-  else if(difference <- sensivityMD){   
+  else if(difference <- sensivityMD){
     difference = -difference;
     generateTone(buzzPin, 1, 20);
     delay(40-(constrain(difference * 5, 10, 40)));
@@ -505,7 +505,6 @@ void lcdStartupConfig(){
 void lcdShow(int x, int y, String text, bool clearState){
   if (clearState){ lcd.clear(); }
   lcd.setCursor(x, y);
-  lcd.print(text);  
+  lcd.print(text);
 }
-//======================================================================================================================================
 //======================================================================================================================================
