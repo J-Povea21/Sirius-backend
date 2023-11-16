@@ -17,6 +17,10 @@ export function setConnection(socket, app) {
 
     socket.on('checkConn', experiment => EmitEvents.checkConnection(experiment));
 
+    // FAKE
+    socket.on('MD', () => EmitEvents.fakeMD());
+    socket.on('checkConnFake', () => EmitEvents.fakeCheckConnection());
+    socket.on('pause', () => EmitEvents.fakePause());
 }
 
 
