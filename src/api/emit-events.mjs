@@ -106,12 +106,11 @@ function fakeMD(){
 
 function generateFakeData(){
     const isFerrous = Math.floor(Math.random() * 2);
-    const data = {MD: {isFerrous}};
-    emitResponse('MD', data);
+    emitResponse('MD', `{"MD":{"isFerrous":${isFerrous}}}`);
 }
 
 function fakeCheckConnection(){
-    emitResponse('checkConn', {status: true, message: 'This is a fake response :)'});
+    emitResponse('checkConnFake', {status: true, message: 'This is a fake response :)'});
 }
 
 function fakePause(){
