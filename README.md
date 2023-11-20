@@ -2,7 +2,6 @@
 Hi, everyone! Welcome to the Sirius's back-end documentation. Here you will find all the information you need to understand how the back-end of the project works. This documentation is divided in the following sections: 
 
 - [Technologies](#technologies)
-- [Installation](#installation)
 - [Server](#server)
 - [Web-socket API](#api)
 - [Arduino docs](src/hardware/arduino/README.md)
@@ -12,8 +11,6 @@ Hi, everyone! Welcome to the Sirius's back-end documentation. Here you will find
 # Technologies
 Sirius is built with **NodeJS** and **Fastify** in order to provide a high performance and developer friendly experience. Along with these technologies, Sirius uses  two main third-party libraries to achieve low-level functionalities such as web-sockets or manage hardware: **Socket.IO** and ***SerialPort** 
 
-# Installation
-...
 
 # Server
 Sirius is an app that works with hardware. In order to receive data from this hardware, it should exists a module to manage this serial communication. Well, that's why  **PortManager** exists. Let's understand how this connection works.
