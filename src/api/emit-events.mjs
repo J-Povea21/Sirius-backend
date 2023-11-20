@@ -7,8 +7,7 @@ import * as Port from "../hardware/port-manager.mjs";
 
 let webSocket = null;
 let dataIsBeingSent = false;
-let experimentToRun = null;
-let intervalID = null;
+let experimentToRun = null; 
 
 // This method combines the findArduino and the checkExperiment functions
 // to make easier the process of starting an experiment in the frontend
@@ -98,25 +97,6 @@ function handleData(sensorData){
     }
 }
 
-// FAKE METHODS
-
-function fakeMD(){
-    intervalID = setInterval(generateFakeData, 1000);
-}
-
-function generateFakeData(){
-    const isFerrous = Math.floor(Math.random() * 2);
-    emitResponse('MD', `{"MD":{"isFerrous":${isFerrous}}}`);
-}
-
-function fakeCheckConnection(){
-    emitResponse('checkConnFake', {status: true, message: 'This is a fake response :)'});
-}
-
-function fakePause(){
-    clearInterval(intervalID);
-}
-
 export {
     setSocket,
     findArduino,
@@ -124,7 +104,4 @@ export {
     startExperiment,
     changeExperiment,
     checkConnection,
-    fakeMD,
-    fakeCheckConnection,
-    fakePause
 }
