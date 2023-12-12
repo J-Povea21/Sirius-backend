@@ -18,6 +18,11 @@ export function setConnection(socket, app) {
     socket.on('changeExperiment', () => EmitEvents.changeExperiment());
 
     socket.on('checkConn', experiment => EmitEvents.checkConnection(experiment));
+
+    // FAKE
+    socket.on('fakeCC', () => EmitEvents.fakeCC());
+    socket.on('fakeExp', () => EmitEvents.fakeMRUA());
+    socket.on('pauseFake', () => EmitEvents.pauseFake());
 }
 
 

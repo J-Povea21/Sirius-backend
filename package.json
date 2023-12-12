@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "node src/index.mjs"
+    "start": "node --env-file=.env.config src/index.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^8.3.0",

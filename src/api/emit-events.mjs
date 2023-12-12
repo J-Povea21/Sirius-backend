@@ -8,6 +8,8 @@ import * as Port from "../hardware/port-manager.mjs";
 let webSocket = null;
 let dataIsBeingSent = false;
 let experimentToRun = null; 
+let intervalID = null;
+let time = 0;
 
 // This method combines the findArduino and the checkExperiment functions
 // to make easier the process of starting an experiment in the frontend
@@ -97,6 +99,28 @@ function handleData(sensorData){
     }
 }
 
+// FAKE FUNCTIONS
+
+function fakeCC() {
+    emitResponse('fakeCC', {status: true, message: 'This is a fake response!'});
+}
+
+function fakeMRUA() {
+    intervalID = setInterval(fakeData,1000);
+}
+
+function fakeData(){
+    let randomDistance = Math.floor(Math.random() * 100);
+    let mruaData = {'MRUA': {'distance': randomDistance, 'time': time}};
+    emitResponse('expData', mruaData);
+    time++;
+}
+
+function pauseFake() {
+    clearInterval(intervalID);
+}
+
+
 export {
     setSocket,
     findArduino,
@@ -104,4 +128,7 @@ export {
     startExperiment,
     changeExperiment,
     checkConnection,
+    fakeCC,
+    fakeMRUA,
+    pauseFake
 }
